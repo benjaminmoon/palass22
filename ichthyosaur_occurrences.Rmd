@@ -1,0 +1,33 @@
+---
+title: Ichthyosaur Occurrences
+author: Benjamin Moon
+---
+
+```{r download_pbdb_data}
+ichthyosaur_pbdb_url <- paste0(
+  "https://paleobiodb.org/data1.2/occs/", # API for occurrence data
+  "list.txt?",                            # text file
+  "interval=Permian,Paleogene",           # time interval of interest
+  "&base_name=Ichthyosauromorpha",        # search for ichthyosaurs
+  "&idreso=species",                      # include only species
+  "&pres=regular",                        # return only body fossils
+  "&show=full"                            # return full PBDB entry
+)
+ichthyosaur_pbdb_occurrences <- read.csv(
+  ichthyosaur_pbdb_url,
+  head = TRUE
+)
+ichthyosaur_pbdb_filename <- paste0(
+  "ichthyosaur_pbdb_occurrences_",
+  format(Sys.time(), format = "%Y-%m-%d-%H-%M-%S"),
+  ".tsv"
+)
+write.table(
+  ichthyosaur_pbdb_occurrences,
+  file = ichthyosaur_pbdb_filename,
+  sep  = "\t",
+  row.names = FALSE,
+  col.names = TRUE
+)
+```
+
