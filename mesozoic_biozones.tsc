@@ -58,7 +58,7 @@
             <setting name="drawAgeLabel">false</setting>
             <setting name="drawUncertaintyLabel">false</setting>
             <setting name="isSelected">true</setting>
-            <setting name="width">2346.0</setting>
+            <setting name="width">2339.0</setting>
             <setting name="pad">0.2</setting>
             <setting name="age pad">2.0</setting>
             <setting name="backgroundColor"/>
@@ -88,7 +88,7 @@
                 <setting name="drawAgeLabel">false</setting>
                 <setting name="drawUncertaintyLabel">false</setting>
                 <setting name="isSelected">true</setting>
-                <setting name="width">58.04296875</setting>
+                <setting name="width">51.369140625</setting>
                 <setting name="pad">0.2</setting>
                 <setting name="age pad">2.0</setting>
                 <setting name="backgroundColor" useNamed="false">rgb(255,255,255)</setting>
@@ -7971,7 +7971,7 @@
                             <setting name="rangeSort">first occurrence</setting>
                         </column>
                         <column id="class datastore.ZoneColumn:Acritarch zones  (Australia Cambrian)">
-                            <setting name="title">Acritarch zones  (Australia Cambrian)</setting>
+                            <setting name="title">Acritarch zones (Australia Cambrian)</setting>
                             <setting name="useNamedColor">false</setting>
                             <setting name="placeHolder">false</setting>
                             <setting name="drawTitle">true</setting>
@@ -13594,7 +13594,7 @@
                             <font function="Range Box Label" inheritable="false"/>
                         </fonts>
                         <column id="class datastore.EventColumn:Acritarch Datums  (Europe)">
-                            <setting name="title">Acritarch Datums  (Europe)</setting>
+                            <setting name="title">Acritarch Datums (Europe)</setting>
                             <setting name="useNamedColor">false</setting>
                             <setting name="placeHolder">false</setting>
                             <setting name="drawTitle">false</setting>
@@ -17805,7 +17805,7 @@
                             <setting name="width">100.0</setting>
                             <setting name="pad">0.2</setting>
                             <setting name="age pad">2.0</setting>
-                            <setting name="backgroundColor" useNamed="false"/>
+                            <setting name="backgroundColor"/>
                             <setting name="customColor" useNamed="false">rgb(255,255,255)</setting>
                             <fonts>
                                 <font function="Column Header" inheritable="false"/>
@@ -22703,7 +22703,7 @@
                     </column>
                 </column>
                 <column id="class datastore.MetaColumn:Impacts  [dashed => est.; arrow UP => younger than this level; DOWN => older]">
-                    <setting name="title">Impacts  [dashed =&gt; est.; arrow UP =&gt; younger than this level; DOWN =&gt; older]</setting>
+                    <setting name="title">Impacts [dashed =&gt; est.; arrow UP =&gt; younger than this level; DOWN =&gt; older]</setting>
                     <setting name="useNamedColor">false</setting>
                     <setting name="placeHolder">false</setting>
                     <setting name="drawTitle">true</setting>
