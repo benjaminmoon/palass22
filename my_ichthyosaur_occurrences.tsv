@@ -39,7 +39,7 @@ Barracudasauroides panxianensis	species	244.34	244.14	Pelsonian	Falang Formation
 Barracudasauroides panxianensis	species	244.34	244.14	Pelsonian	Falang Formation	Nicoraella kockeli Conodont Biozone	Panxian, Guizhou, China	CN	Motani2008JVP	899772		104.905556	25.518888					38		38
 Mixosauridae	clade	244.34	244.14	Pelsonian	Guanling Formation	Nicoraella kockeli Conodont Biozone	Panxian, Guizhou, China	CN	Young1965VP	391980		106.366997	27.857					39		39
 Mixosauridae	clade	244.34	244.14	Pelsonian	Guanling Formation	Nicoraella kockeli Conodont Biozone	Panxian, Guizhou, China	CN	Jiang2005P	916388	GMPKU 2000008, GMPKU 2000009	104.833336	25.466667					40		40
-Besanosaurus leptorhynchus	species	242.03	241.5	Illyrian	Besano Formation	Nevadites secedensis Ammonite Biozone	Besano, Lombardy, Italy	IT	DalSasso1996PL	1134407	BES SC 999	9.233333	45.150002					41		41
+Besanosaurus leptorhynchus	species	242.03	241.5	Illyrian	Besano Formation	Nevadites secedensis Ammonite Biozone	Besano, Lombardy, Italy	IT	DalSasso1996PL	1134407	BES SC 999	9.233333	45.150002					41	layer 65/107 Bindellini et at 2021 Tbl 1	41
 Ophthalmosauridae	clade	149.59	147.2	Middle Volgian	Agardhfjellet Formation		Svalbard, Norway	SJ	Angst2010BSGF	1108489	SESNE 2010.0.1	15.8325	78.336899					42		42
 Platypterygiinae	species	147.93	144.1	Portlandian			Ankilivalo, Madagascar	MG	Fernandez1997JVP	884094	CM 47525	44.383331	-23.200001					43		43
 Brachypterygius extremus	species	151.92	150.66	Tithonian	Kimmeridge Clay Formation	Pectinatites elegans–P. wheatleyensis ammonite biozones	Kimmeridge Bay, Dorset, UK	GB	McGowan1997JVP	884160	BRSMG Ce 16696	-2.133333	50.616669					44		44
@@ -284,3 +284,7 @@ Catutosaurus gaspariniae	species			late middle–early late Tithonian	Los Catuto
 Catutosaurus gaspariniae	species			late middle–early late Tithonian	Vaca Muerta Formation		Pampa Tril-Yesera del Tromen, Neuquén Province, Argentina	AR	Fernandez2021JVP		MOZ-PV-103	-69.78440	-37.29099							
 Catutosaurus gaspariniae	species			late middle–early late Tithonian	Vaca Muerta Formation		Cerro Lotena, Neuquén Province, Argentina	AR	Fernandez2021JVP		MOZ-PV-7260	-69.79856	-39.23361							
 Parrassaurus yacahuitztli	species			late Tithonian	La Caja Formation		Rancho el sombrero, Sierra de Parras, Saltillo Municipality, Coahuila, Mexico	MX	BarrientosLara2021A		CPC 307	-101.482778	25.138611							
+Besanosaurus leptorhynchus	species	242.03	241.5	Illyrian	Besano Formation	Nevadites secedensis Ammonite Biozone	Sasso Caldo, Besano, Lombardy, Italy	IT	Bindellini2021P		BES SC 1016	9.233333	45.150002						layer 70/96 Bindellini et at 2021 Tbl 1	
+Besanosaurus leptorhynchus	species	242.03	241.5	Illyrian	Besano Formation	Nevadites secedensis Ammonite Biozone	Valle Stelle, Canton Ticino, Switzerland	CH	Bindellini2021P		PIMUZ T 4376	8.93917	45.91235						layer 82/71 Bindellini et at 2021 Tbl 1	
+Besanosaurus leptorhynchus	species	242.03	241.5	Illyrian	Besano Formation	Nevadites secedensis Ammonite Biozone	Cava Tre Fontaine, Canton Ticino, Switzerland	CH	Bindellini2021P		PIMUZ T 4847, PIMUZ T 1895	8.93695	45.91090						layer 60/116 Bindellini et at 2021 Tbl 1	
+Besanosaurus leptorhynchus	species	242.03	241.5	Illyrian	Besano Formation	Nevadites secedensis Ammonite Biozone	unknown Swiss locality	CH	Bindellini2021P		GPIT 1793/1	8.95	45.91						unknown locality, prob. Monte San Giorgio	
