@@ -345,7 +345,7 @@ Nannopterygius	genus				Kimmeridge Clay Formation?		St Helens, Abingdon, Oxfords
 Nannopterygius	genus				Kimmeridge Clay Formation?		Garsington, Oxfordshire, UK	GB	Zverkov2020ZJLS		OUMNH J54546	51.717	-1.154						
 Nannopterygius	genus				Upper Kimmeridge Clay Formation?		Oday Common, Abingdon, Oxfordshire, UK	GB	Zverkov2020ZJLS		MJML J1174	51.651	-1.290						
 Nannopterygius	genus				Kimmeridge Clay Formation?		Kimmeridge Bay, Kimmeridge, Dorset, UK	GB	Zverkov2020ZJLS		NHMUK uncatalogued	50.61158	-2.13163						possibly original material described as Enthekiodon
-Nannopterygius saveljeviensis	species			middle Volgian		Virgatites virgatus Biozone	Brickworks Quarry, Gorny, Krasnopartisansky District, Saratov Region	RU	Zverkov2020ZJLS		SSU 104a-23	51.775	48.553						
+Nannopterygius saveljeviensis	species			middle Volgian		Virgatites virgatus Biozone	Brickworks Quarry, Gorny, Krasnopartisansky District, Saratov Region	RU	Zverkov2020ZJLS	1094596	SSU 104a-23	51.775	48.553						
 Nannopterygius cf. saveljeviensis	species			middle Volgian		Dorsoplanites panderi Biozone	Saveljevsky Shale mine near Gorny, Krasnopartisansky District, Saratov Region	RU	Zverkov2020ZJLS		PRM 2836	51.775	48.553						
 Nannopterygius yasykovi	species			middle Volgian		Epivirgatites nikitini Biozone	'Detskiy sanatorium' near Ulyanovsk, Volga Region, Russia	RU	Zverkov2020ZJLS		UPM EP-II-7	54.375	48.539						
 Nannopterygius saveljeviensis	species			middle Volgian		Virgatites virgatus Biozone	near Ulyanovsk, Volga Region, Russia	RU	Zverkov2020ZJLS		UPM EP-II-9(1000)	54.157656	48.642742						
@@ -353,7 +353,7 @@ Nannopterygius saveljeviensis	species			middle Volgian		Epivirgatites nikitini B
 Nannopterygius saveljeviensis	species			middle Volgian		Epivirgatites nikitini Biozone	near Ulyanovsk, Volga Region, Russia	RU	Zverkov2020ZJLS		UPM EP-II-17(864), UPM EP-II-16(1202), UPM EP-II-8(1076)	54.157656	48.642742						
 Nannopterygius cf. saveljeviensis	species			middle Volgian		Dorsoplanites panderi Biozone	near Ulyanovsk, Volga Region, Russia	RU	Zverkov2020ZJLS		UPM EП-II-13(1151)	54.157656	48.642742						
 Nannopterygius	genus			upper Volgian		Kachpurites fulgens Biozone	Lopatinsky Phosphate Mine, near Khorlovo village, Mosco Region, Russia	RU	Zverkov2020ZJLS		UPM EP-II-12(4-M)	55.32371	38.75296						
-Nannopterygius yasykovi	species			upper Volgian		Kachpurites fulgens Biozone	Lopatinsky Phosphate Mine, near Khorlovo village, Mosco Region, Russia	RU	Zverkov2020ZJLS		UPM EP-II-11(3-M)	55.32371	38.75296						
+Nannopterygius yasykovi	species			upper Volgian		Kachpurites fulgens Biozone	Lopatinsky Phosphate Mine, near Khorlovo village, Mosco Region, Russia	RU	Zverkov2020ZJLS	1094597	UPM EP-II-11(3-M)	55.32371	38.75296						
 Nannopterygius saveljeviensis	species			upper Volgian		Kachpurites fulgens Biozone	Slantsevy Rudnik near Ulyanovsk, Volga Region, Russia	RU	Zverkov2020ZJLS		UPM EP-II-15(153)	54.44893	48.39424						
 Nannopterygius saveljeviensis	species			upper Volgian		Garniericeras catenulatum BioZone, Craspedites subdites Biozone	'Detskiy sanatorium' near Ulyanovsk, Volga Region, Russia	RU	Zverkov2020ZJLS		UPM EP-II-14(881)	54.375	48.539						
 Nannopterygius cf. yasykovi	species			middle Volgian		Virgatites virgatus Biozone	Lopatinsky Phosphate Mine, near Khorlovo village, Mosco Region, Russia	RU	Zverkov2020ZJLS		SGM 0846-03	55.32371	38.75296						
@@ -361,3 +361,23 @@ Nannopterygius cf. yasykovi	species			middle Volgian		Virgatites virgatus–Epiv
 Nannopterygius cf. saveljeviensis	species			middle Volgian		Dorsoplanites panderi Biozone	Kutseba Saratov Region, Russia	RU	Zverkov2020ZJLS		SGM tem-11	51.75918	50.64666						
 Nannopterygius borealis	species			Berriasian	Hofer Formation	Hectoroceras kochi Biozone	Berghaus Island, Franz Joseph Land	RU	Zverkov2020ZJLS		CCMGE 45-46/13328	80.288	58.83205						location at centre Berghaus Island
 Nannopterygius borealis	species			uppermost Volgian	Slottsmøya Member, Agardfjellet Formation		North side of Janusfjellet, Spitsbergen, Svalbard	SJ	Delsett2018P,Zverkov2020ZJLS		PMO 222.658	78.33657	15.83501	UTM WGS84 33X 0518844 8696066					location at centre Berghaus Island
+Protoichthyosaurus prostaxalis	species			lower Sinemurian		Arnioceras semicostatum Biozone	Fell Mill Farm, Honington, Warwickshire, England, UK	GB	Lomax2019P		BMT 1955.G35.1	52.07118	-1.59729						
+Temnodontosaurus	genus			Hettangian–Sinemurian	Estratos de Rencoret–La Negra formations		Mantos Blancos Mine, Antofagasta Region, northern Chile	CL	Otero2019JSAES		SGO.PV.324	-23.56133	-69.99487						
+Protoichthyosaurus prostaxalis	species			lower Hettangian		Psiloceras planorbis Biozone, Caloceras johnstoni Subbiozone	Barrow-upon-Soar, Leicestershire, England, UK	GB	Lomax2019GM		LEICT G142.1991, LEICT G738.1889	52.7441	-1.1578						
+Protoichthyosaurus	genus			lower Hettangian	Salford Shale member, Blue Lias Formation	Alsatites liasicus–Schlotheimia angulatis biozones	Southam Cement Works Quarry, Warwickshire, England, UK	GB	Lomax2019GM		WARMS G15646	52.27112	-1.37622						
+Protoichthyosaurus	genus							GB	Lomax2019GM		LDUCZ #X424								
+Eurhinosaurus longirostrus	species			lower Toarcian	Posidonienschiefer Formation Lias εII,10	Harpoceras falciferum Ammonoid Biozone, elegans Ammonoid Subbiozone	Holzmaden, Baden-Württemberg, Germany	DE	vonHuene1938NJFMGPBB		NHMUK PV R5465	48.63539	9.52693						
+Ichthyosauria	clade			lower Lower Jurassic	Lower Lias		Owthore, Rushcliffe, Nottinghamshire, ENgland, UK	GB	Lomax2015PGA		BGS:GSM 84563, DBMYU 1986-996, DONMG 2013.8.561	52.89494	-1.00598						
+Ichthyosauria	clade			Rhaetian	Rhaetic Bone Bed, Westbury Formation, Penarth Group		Railway Cutting, 1/2 mile east of Barnstone, Ruchcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		BGS:GSM Zr 8594, BGS:GSM Zr 8595, LSICT G361.1973.1–3, NHMUK PV R9148–9151, NHMUK PV R9159–9162, NHMUK PV R 9163–9168, NHMUK PV R 9169, NHMUK PV 9179, NHMUK PV R 9180	52.88758	-1.09137						
+Ichthyosauria	clade			lower Lower Jurassic	Lower Lias		Cropwell Butler, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		DONMG 1919.17b.105, DONMG 2013.8.564, DONMG 2013.8.576	52.92717	-0.98275						
+Ichthyosauria	clade			Hettangian	Lower Lias		Normanton Hills, near Normanton son Soar, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		LEICT G454.1951.167, LEICT G454.1951.168, LEICT G454.1951.169, LEICT G454.1951.170, LEICT G454.1951.171, LEICT G558.1952, LEICT G454.1951.5	52.80683	-1.21396						
+Ichthyosauria	clade			Hettangian	Lower Lias	Psiloceras planorbis Biozone	Normanton Hills, near Normanton son Soar, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		LEICT G378.1953.13.1, LEICT G378.1953.13.2, LEICT G378.1953.13.3, LEICT G378.1953.13.4, LEICT G297.1954	52.80683	-1.21396						
+Ichthyosauria	clade			Hettangian	Lower Lias		Costock, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		LEICT G109.1991, NOTNH FS5558	52.83161	-1.14699						
+Ichthyosauria	clade			Rhaetian	Rhaetic Bone Bed, Westbury Formation, Penarth Group		Staple Pit, Newark-upon-Trent, Nottinghamshire, Englangd, UK	GB	Lomax2015PGA		LEIUG 88987	53.084	-0.817						
+Ichthyosauria	clade			lower Lower Jurassic	Lower Lias		Balderton, near Newark-on-Trent, Nottinghamshire, Englangd, UK	GB	Lomax2015PGA		NOTNH FS8219, NOTNH FS8219, NOTNH FS8220, NOTNH FS8221, NOTNH FS10438, NOTNH FS10439	53.05593	-0.77477						
+Ichthyosauria	clade			lower Lower Jurassic	Lower Lias		Barnstone Quarry, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		NOTNH FS13770, UOD D1	52.90781	-0.90541						
+Ichthyosaurus	genus			lower Lower Jurassic	Lower Lias		Cropwell Butler, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		DONMG 2013.8.552	52.92717	-0.98275						
+Ichthyosaurus	genus			lower Lower Jurassic	Lower Lias		Cropwell Bishop, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		NOTNH FS3323, NOTNH FS3456A, NOTNH FS3456B	52.91403	-0.98445						
+Ichthyosaurus	genus						Nottinghamshire?, England, UK	GB	Lomax2015PGA		DONMG 2013.8.553								
+Ichthyosaurus	genus			lower Lower Jurassic	Lower Lias		Barnstone Quarry, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		NOTNH FS4940	52.90781	-0.90541						
+Ichthyosauria	clade			lower Lower Jurassic	Lower Lias		Granby, Rushcliffe, Nottinghamshire, England, UK	GB	Lomax2015PGA		KINCM 1956.85.1	52.91836	-0.88527						
