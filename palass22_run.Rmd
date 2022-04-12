@@ -7,6 +7,8 @@ renv::restore()
 ```
 
 ```{r libraries}
+library(coda)
+library(deeptime)                      # https://github.com/willgearty/deeptime
 library(tidyverse)
 
 dirs <-
@@ -21,6 +23,7 @@ for (directory in dirs) {
   if (!dir.exists(directory)) dir.create(directory)
 }
 
+source("./functions/functions.R")
 source("https://raw.githubusercontent.com/dsilvestro/PyRate/master/pyrate_utilities.r")
 ```
 
@@ -31,6 +34,7 @@ data <-
     accepted_rank == "species",
     min_ma > 201
   ) %>%
+  separate_rows(specimen_no, sep = ",") %>%
   write_tsv(paste0(dirs$pyrate, "triassic_species.tsv"))
 
 extract.ages.pbdb(
@@ -39,4 +43,132 @@ extract.ages.pbdb(
   replicates = 10,
   cutoff = 8,
 )
+```
+
+```{r pyrate_create_submission_scripts, eval = FALSE}
+submission_script_base <-
+  paste(
+    "#!/bin/bash",
+    "### PBDB  occurrences",
+    "### 10 replicates array job",
+    "### name of job",
+    "#PBS -N Pg_$1",
+    "### time to stop job",
+    "#PBS -l walltime=72:00:00",
+    "### number of nodes/cpus *for each job*",
+    "### in this case each run of PyRate uses 1 CPU",
+    "#PBS -l select=1:ncpus=1:mem=4gb",
+    "### index range for subjobs",
+    "### this is how many runs of PyRate we want",
+    "#PBS -J 1-10",
+    "### add Python 3.8 module",
+    "module add lang/python/anaconda/3.8.3-2020-math",
+    paste(
+      "python3 /work/glbcm/PyRate/PyRate.py -n 100000000 -s 5000 -se_gibbs",
+      "-qShift /work/glbcm/pg_pyrate/ages.txt -fU 0.2 0.78 0.0",
+      "-j $PBS_ARRAY_INDEX -edgeShift 66 23 -out $1",
+      "/work/glbcm/pg_pyrate/Pg_$1_PyRate.py",
+      sep = " "
+    ),
+    sep = "\n"
+  )
+
+sub_filename <-
+  paste0(dirs$pyrate, "pyrate_submission.sh")
+cat("#!/bin/bash\n", file = sub_filename)
+for (taxon in taxon_matching) {
+  modified_script <-
+    gsub("\\$1", taxon$taxon_name, submission_script_base)
+  filename <-
+    paste0(taxon$taxon_name, "_sub.sh")
+  cat(modified_script, file = paste0(dirs$pyrate, filename))
+  runscript_line <-
+    paste("qsub", filename, "\n", sep = " ")
+  cat(
+    runscript_line,
+    file = sub_filename,
+    append = TRUE
+  )
+}
+
+# ages.txt needed for -se-gibbs sampling
+system2(
+  "cp",
+  args = paste(
+    paste0(dirs$data, "ages.txt"),
+    paste0(dirs$pyrate, "ages.txt")
+  )
+)
+```
+
+```{r combine_pyrate}
+ess_statistics <-
+  list.files(path = paste0(dirs$pyrate, "/pyrate_mcmc_logs/"), pattern = "rj_mcmc", full.names = TRUE) %>%
+  map(~ read.table(.x, header = TRUE, row.names = 1)) %>%
+  bind_cols() %>%
+  rownames_to_column()
+```
+
+```{r process_pyrate_results}
+process_pyrate_results()
+
+plot_labels <-
+  c(
+    sp_rates  = "Speciation rate",
+    sp_shifts = "Speciation rate shifts",
+    ex_rates  = "Extinction rate",
+    ex_shifts = "Extinction rate shifts",
+    net_rates = "Net diversification rate",
+    longevity = "Species longevity"
+  )
+# Use the colour scheme No. 5 from
+# https://digitalsynopsis.com/design/minimal-web-color-palettes-combination-hex-code/
+# with an added blue
+plot_colours <- c(rep("#2F9599", 2), rep("#EC2049", 2), "#4378CB", "#A7226E")
+names(plot_colours) <- plot_labels
+
+pyrate_bayesfactors <- read_pyrate_bayesfactors()
+pyrate_results <- read_pyrate_results()
+
+# dev.new(width = 10.47, height = 6.54)
+# pyrate_plot <-
+  pyrate_results %>%
+    ggplot(
+      aes(
+        x      = time,
+        y      = rate,
+        ymin   = minHPD,
+        ymax   = maxHPD,
+        xend   = time,
+        yend   = 0,
+        yintercept = value,
+        colour = plt_curve,
+        fill   = plt_curve,
+        # group  = taxon
+      )
+    ) +
+      pyrate_facet_taxon_curve() +
+      # pyrate_plot_eotlabel() +
+      pyrate_plot_curves() +
+      pyrate_plot_shifts() +
+      pyrate_plot_axes() +
+      pyrate_plot_theme()
+
+pyrate_plot
+pyrate_plot_save(pyrate_plot)
+```
+
+```{r occurrence_histograms}
+# log_data <-
+  read_tsv("./output/pyrate/pyrate_mcmc_logs/combined_6triassic_ichthyosaurs_mcmc.log") %>%
+  pivot_longer(
+    cols = ends_with("TS"),
+    names_to = "parameters",
+    values_to = "value"
+  ) %>%
+  ggplot(aes(value, fill = parameters)) +
+  geom_histogram() +
+  facet_wrap(vars(parameters), ncol = 1, strip.position = "right") +
+  scale_x_reverse() +
+  theme(legend.position = "none")
 ```
