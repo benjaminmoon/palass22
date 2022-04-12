@@ -1,4 +1,4 @@
-oid	﻿taxon	taxon_rank	max_ma	min_ma	stratigraphy	lithostratigraphy	biostratigraphy	locality	country_code	references	pbdb_occurrences	specimen_no	lat	lng	utm	paleo_lng	paleo_lat	higher_than	comments
+oid	accepted_name	accepted_rank	max_ma	min_ma	stratigraphy	lithostratigraphy	biostratigraphy	locality	country_code	references	pbdb_occurrences	specimen_no	lat	lng	utm	paleo_lng	paleo_lat	higher_than	comments
 1	Acamptonectes densus	species	134.71	133.87	Lower Hauterivian	Speeton Clay Formation	Endomoceras ammonite biozones	Yorkshire, UK	GB	Fischer2012PO,Hopson2008	1006657	GLAHM 132588	54.161999	-0.236					
 2	Acamptonectes densus	species	134.71	133.87	Lower Hauterivian	Speeton Clay Formation	Endomoceras ammonite biozones	Yorkshire, UK	GB	Fischer2012PO,Hopson2008	1006659	NHMUK R11185	54.210098	-0.2893					
 3	Acamptonectes densus	species	133.32	132.85	Upper Hauterivian		Milankowskia speetonensis Ammonite Biozone	Lower Saxony, Germany	DE	Siebertz2008BNS	1006660	SNHM 1284-R	52.24889	10.654167					
