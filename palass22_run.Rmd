@@ -1,0 +1,42 @@
+---
+---
+
+
+```{r chunk_tag, echo = FALSE}
+renv::restore()
+```
+
+```{r libraries}
+library(tidyverse)
+
+dirs <-
+  list(
+    data   = "data/",
+    figs   = "figs/",
+    geog   = "data/palaeogeog_outlines/",
+    output = "output/",
+    pyrate = "output/pyrate/"
+  )
+for (directory in dirs) {
+  if (!dir.exists(directory)) dir.create(directory)
+}
+
+source("https://raw.githubusercontent.com/dsilvestro/PyRate/master/pyrate_utilities.r")
+```
+
+```{r load_data}
+data <-
+  read_tsv("./my_ichthyosaur_occurrences.tsv") %>%
+  filter(
+    accepted_rank == "species",
+    min_ma > 201
+  ) %>%
+  write_tsv(paste0(dirs$pyrate, "triassic_species.tsv"))
+
+extract.ages.pbdb(
+  file = paste0(dirs$pyrate, "triassic_species.tsv"),
+  sep = "\t",
+  replicates = 10,
+  cutoff = 8,
+)
+```
