@@ -274,3 +274,9 @@ TSWLatexianTemp*
 
 # Makeindex log files
 *.lpz
+
+# PyRate files
+*.cpython*
+.bash_history
+output/pyrate/__pycache__/*
+output/pyrate/pyrate_mcmc_logs/*
