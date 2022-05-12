@@ -2,14 +2,19 @@
 ---
 
 
+
 ```{r chunk_tag, echo = FALSE}
 renv::restore()
 ```
 
 ```{r libraries}
+library(tidyverse)
+
+library(future)
+library(furrr)
+
 library(coda)
 library(deeptime)                      # https://github.com/willgearty/deeptime
-library(tidyverse)
 
 dirs <-
   list(
@@ -29,12 +34,12 @@ source("https://raw.githubusercontent.com/dsilvestro/PyRate/master/pyrate_utilit
 
 ```{r load_data}
 data <-
-  read_tsv("./my_ichthyosaur_occurrences.tsv") %>%
+  read_tsv("./my_ichthyosaur_occurrences.tsv") |>
   filter(
     accepted_rank == "species",
     min_ma > 201
-  ) %>%
-  separate_rows(specimen_no, sep = ",") %>%
+  ) |>
+  separate_rows(specimen_no, sep = ",") |>
   write_tsv(paste0(dirs$pyrate, "triassic_species.tsv"))
 
 extract.ages.pbdb(
@@ -103,9 +108,9 @@ system2(
 
 ```{r combine_pyrate}
 ess_statistics <-
-  list.files(path = paste0(dirs$pyrate, "/pyrate_mcmc_logs/"), pattern = "rj_mcmc", full.names = TRUE) %>%
-  map(~ read.table(.x, header = TRUE, row.names = 1)) %>%
-  bind_cols() %>%
+  list.files(path = paste0(dirs$pyrate, "/pyrate_mcmc_logs/"), pattern = "rj_mcmc", full.names = TRUE) |>
+  map(~ read.table(.x, header = TRUE, row.names = 1)) |>
+  bind_cols() |>
   rownames_to_column()
 ```
 
@@ -132,7 +137,7 @@ pyrate_results <- read_pyrate_results()
 
 # dev.new(width = 10.47, height = 6.54)
 # pyrate_plot <-
-  pyrate_results %>%
+  pyrate_results |>
     ggplot(
       aes(
         x      = time,
@@ -141,7 +146,7 @@ pyrate_results <- read_pyrate_results()
         ymax   = maxHPD,
         xend   = time,
         yend   = 0,
-        yintercept = value,
+        # yintercept = value,
         colour = plt_curve,
         fill   = plt_curve,
         # group  = taxon
@@ -150,7 +155,7 @@ pyrate_results <- read_pyrate_results()
       pyrate_facet_taxon_curve() +
       # pyrate_plot_eotlabel() +
       pyrate_plot_curves() +
-      pyrate_plot_shifts() +
+      # pyrate_plot_shifts() +
       pyrate_plot_axes() +
       pyrate_plot_theme()
 
@@ -159,16 +164,315 @@ pyrate_plot_save(pyrate_plot)
 ```
 
 ```{r occurrence_histograms}
-# log_data <-
-  read_tsv("./output/pyrate/pyrate_mcmc_logs/combined_6triassic_ichthyosaurs_mcmc.log") %>%
+log_data <-
+  read_tsv("./output/pyrate/pyrate_mcmc_logs/combined_10mcmc.log", n_max = 10000) |>
   pivot_longer(
-    cols = ends_with("TS"),
+    cols = ends_with(c("TS", "TE")),
     names_to = "parameters",
     values_to = "value"
-  ) %>%
-  ggplot(aes(value, fill = parameters)) +
-  geom_histogram() +
-  facet_wrap(vars(parameters), ncol = 1, strip.position = "right") +
+  )
+
+log_data |>
+  ggplot(aes(value, after_stat(density))) +
+  geom_histogram(binwidth = 0.1) +
+  # facet_wrap(vars(parameters), ncol = 1, strip.position = "right") +
   scale_x_reverse() +
+  coord_geo(dat = "stages") +
   theme(legend.position = "none")
 ```
+
+```{r building_trees}
+library(ape)
+library(pbapply)
+library(phangorn)
+library(tidyverse)
+
+bindellini_trees <-
+  read.tree("./data/phylogeny/Bindellini2021PJ-trees.tre") |>
+  root("Petrolacosaurus", resolve.root = TRUE)
+moon_trees <-
+  read.tree("./data/phylogeny/Moon2019CB-trees.tre") |>
+  root("Hupehsuchus_nanchangensis", resolve.root = TRUE)
+
+# standardize the taxonomy
+bindellini_trees[[1]]$tip.label[
+  !bindellini_trees[[1]]$tip.label %in% moon_trees[[1]]$tip.label
+]
+
+taxon_match_bindellini_to_moon <-
+  c(
+    "Besanosaurus"              = "Besanosaurus_leptorhynchus",
+    "Californosaurus"           = "Californosaurus_perrini",
+    "Callawayia_wolonggangense" = "Guizhouichthyosaurus_wolonggangense",
+    "Cartorhynchus"             = "Cartorhynchus_lenticarpus",
+    "Cymbospondylus_piscosus"   = "Cymbospondylus_petrinus",
+    "Eohupehsuchus"             = "Eohupehsuchus_brevicollis",
+    "Eretmorhipis"              = "Eretmorhipis_carrolldongi",
+    "Grippia"                   = "Grippia_longirostris",
+    "Guanlingsaurus"            = "Shastasaurus_liangae",
+    "Guizhouichthyosaurus"      = "Guizhouichthyosaurus_tangae",
+    "Gulosaurus"                = "Gulosaurus_helmi",
+    "Hudsonelpidia"             = "Hudsonelpidia_brevirostris",
+    "Hupehsuchus"               = "Hupehsuchus_nanchangensis",
+    "Macgowania"                = "Macgowania_janiceps",
+    "Mixosaurus_panxianensis"   = "Barracudasauroides_panxianensis",
+    "Nanchangosaurus"           = "Nanchangosaurus_suni",
+    "Parahupehsuchus"           = "Parahupehsuchus_longus",
+    "Parvinatator"              = "Parvinatator_wapitiensis",
+    "Phalarodon_atavus"         = "Contectopalatus_atavus",
+    "Sclerocormus"              = "Sclerocormus_parviceps",
+    "Shastasaurus"              = "Shastasaurus_pacificus",
+    "Thalattoarchon"            = "Thalattoarchon_saurophagis",
+    "Utatsusaurus"              = "Utatsusaurus_hataii",
+    "Xinminosaurus"             = "Xinminosaurus_catactes"
+  )
+
+bindellini_trees <-
+  purrr::map(
+    bindellini_trees[1:10],
+    function(.x) {
+      .x$tip.label <- str_replace_all(.x$tip.label, taxon_match_bindellini_to_moon)
+      .x
+    }
+  )
+class(bindellini_trees) <- "multiPhylo"
+
+
+
+Hupehsuchia <-
+  c("Eohupehsuchus_brevicollis", "Eretmorhipis_carrolldongi", "Hupehsuchus_nanchangensis", "Nanchangosaurus_suni", "Parahupehsuchus_longus")
+outgroups <-
+  c("Claudiosaurus", "Hovasaurus", "Petrolacosaurus", "Thadeosaurus", "Wumengosaurus")
+anchor_taxa <- c("Cartorhynchus_lenticarpus", "Sclerocormus_parviceps")
+
+# the topology is the same as this is resolved in strict consensus
+bindellini_outgroups <- keep.tip(bindellini_trees[[1]], tip = c(Hupehsuchia, outgroups, anchor_taxa))
+
+availableCores()
+plan(multisession)
+
+moon_supertrees <-
+  moon_trees |>
+    future_map(~ superTree(c(.x, bindellini_outgroups), rooted = TRUE), .progress = TRUE)
+class(moon_supertrees) <- "multiPhylo"
+
+plot(ladderize(moon_supertrees[[1]]), no.margin = TRUE, cex = 0.5)
+```
+
+```{r strap}
+library(strap)
+
+replace_name_underscore <-
+  function(data) {
+    # Replace spaces with underscores in the `accepted_name` column.
+    #
+    # Args:
+    #   data: a tibble or data.frame with an `accepted_name` column.
+    #
+    # Returns:
+    #   A tibble with the spaces in strings in the accepted_name column replaced with underscores.
+    data |>
+          mutate(accepted_name = str_replace_all(accepted_name, "\\s", "_"))
+  }
+
+data <- replace_name_underscore(data)
+
+names_data <-
+  data |>
+  pull(accepted_name) |>
+  unique()
+
+missing_taxa_phylo <-
+  function(phy, taxa) {
+    # List taxa not found in a tree.
+    #
+    # Args:
+    #   phy: a `phylo` or `multiPhylo` object containing tree topologies.
+    #   taxa: a character vector of taxa to query their presence in the tree(s).
+    #
+    # Returns:
+    #   A character vector of taxa not identified in the tree(s). Note that character transformations are not checked, so that species with a space between names will not be identified if the tree has underscores between species name parts.
+    phy$tip.label[!(phy$tip.label %in% taxa)]
+  }
+
+identify_taxa_not_in_phylo <-
+  function(phy, taxa) {
+    # Identify taxa from a set of data that are not included in phylogenetic tree(s).
+    #
+    # Args:
+    #   phy: a `phylo` or `multiPhylo` object containing tree topologies.
+    #   taxa: a character vector of taxa to query their presence in the tree(s).
+    #
+    # Returns:
+    #   A character vector of taxa not identified in the tree(s). Note that character transformations are not checked, so that species with a space between names will not be identified if the tree has underscores between species name parts.
+    #
+    #   If a `multiPhylo` object is given, then a list is returned with two items:
+    #     1. A character vector of unique taxon names missing across all trees, and
+    #     2. A list of taxa missing for each tree.
+    if (class(phy) == "phylo") {
+      missing_taxa_phylo(phy, taxa)
+    } else if (class(phy) == "multiPhylo") {
+      per_tree_missing <-
+        phy |>
+          purrr::map(~ missing_taxa_phylo(.x, taxa))
+      list(
+        missing_taxa = unique(unlist(per_tree_missing)),
+        per_tree_missing_taxa = per_tree_missing
+      )
+    } else {
+      stop("Tree is not a `phylo` or `muliPhylo` object.")
+    }
+  }
+
+taxa_not_in_trees <- identify_taxa_not_in_phylo(phy = moon_supertrees, taxa = names_data)
+
+reduce_trees <-
+  function(phy, taxa) {
+    # Reduces trees to a specified set of taxa by dropping unmatched tip using `ape::drop.tip`.
+    #
+    # Args:
+    #   phy: a `phylo` or `mulitPhylo` object.
+    #   taxa: a character vector of taxon names to remove.
+    #
+    # Returns:
+    #   A `phylo` or `multiPhylo` object matching the input phylogenetic trees but with the specified taxa removed.
+    if (class(phy) == "phylo") {
+      reduced_phy <-
+        phy |>
+        drop.tip(taxa)
+    } else if (class(phy) == "multiPhylo") {
+      reduced_phy <-
+        phy |>
+        purrr::map(~ drop.tip(.x, taxa)) |>
+        purrr::map(`class<-`, "phylo")
+      class(reduced_phy) <- "multiPhylo"
+    } else {
+      stop("Tree is not a `phylo` or `muliPhylo` object.")
+    }
+    reduced_phy
+  }
+
+small_trees <-
+  reduce_trees(moon_supertrees, taxa_not_in_trees[[1]])
+
+compute_taxon_ranges <-
+  function(data) {
+    # Calculate the early and late range ages of a set of tax from individual occurrence data.
+    #
+    # Args:
+    #   data: a tibble or data.frame of taxa including the column `accepted_name` on which to group taxa and the columns `max_ma` and `min_ma` indicating occurrence range ages.
+    #
+    # Returns:
+    #   A tibble of taxon accepted names with their first and last appearance dates in `FAD` and `LAD` columns. [not yet implemented:] The uncertainty of the appearance is also indicated by returning the maximum values of `min_ma` and minimum values of `max_ma`.
+    fad_lad <-
+      data |>
+        group_by(accepted_name) |>
+        summarize(
+          FAD     = max(max_ma),
+          LAD     = min(min_ma),
+        )
+  }
+
+fadlad_for_stratcongr <-
+  data|>
+    compute_taxon_ranges() |>
+    mutate(accepted_name = str_replace_all(accepted_name, "\\s", "_")) |>
+    replace_name_underscore() |>
+    filter(accepted_name %in% moon_supertrees[[1]]$tip.label) |>
+    column_to_rownames("accepted_name")
+
+strat_cong <-
+  StratPhyloCongruence(small_trees, fadlad_for_stratcongr, rlen = 2, method = "equal")
+
+most_congruent_trees <-
+  function(StratPhyloCongruence_results, metric = "SCI", cutoff = 0.6) {
+    # Show most stratigraphically congruent trees from the results of StratPhyloCongruence.
+    #
+    # Args:
+    #   StratPhyloCongruence_results: the results of a stratigraphical congruence analysis using strap::StratPhyloCongruence.
+    #   metric: the column variable to filter on. Can be a congruence metric of the p-value.
+    #   cutoff: the cut-off value below which to discard trees.
+    #
+    # Returns:
+    #   A vector of numbers indicating the positions of trees from the input to StratPhyloCongruence that meet the cut off value.
+    #
+    #   If `metric` is one of the stratigraphical congruence metrics then the cut-off value is treated as a minimum1, returning trees with values greater than the cut-off, if a *p-value is used (e.g. `est.p.GER` or `p.Wills`) then the `cutoff` is treated as a maximum
+    congruence_df <-
+      StratPhyloCongruence_results$input.tree.results |>
+      as.data.frame() |>
+      rownames_to_column() |>
+      as_tibble()
+    if (str_detect(metric, "p.")) {
+      filtered_df <-
+        congruence_df |>
+        filter(.data[[metric]] < {{ cutoff }})
+    } else {
+      filtered_df <-
+        congruence_df |>
+        filter(.data[[metric]] > {{ cutoff }})
+    }
+    filtered_df |>
+      mutate(tree = str_replace_all(rowname, "tree_", "")) |>
+      pull(tree) |>
+      as.numeric()
+  }
+
+good_trees <- most_congruent_trees(strat_cong, metric = "SCI", cutoff = 0.6)
+```
+
+```{r cal3}
+library(paleotree)
+
+pt_data <-
+  names_data |>
+  purrr::map(~ filter(data, accepted_name == .x))
+time_list <-
+  occData2timeList(pt_data, intervalType = "dateRange")
+dimnames(time_list[[2]])[[1]] <- str_replace(names_data, "\\s", "_")
+
+taxicDivDisc(time_list, plot = TRUE)
+
+dur_freq <- make_durationFreqDisc(time_list)
+srRes <- optim(
+  parInit(dur_freq),
+  dur_freq,
+  lower = parLower(dur_freq),
+  upper = parUpper(dur_freq),
+  method = "L-BFGS-B",
+  control = list(maxit = 1000000)
+)
+sRate <- srRes[[1]][2]
+divRate <- srRes[[1]][1]
+
+surv_mod <- make_inverseSurv(time_list)
+constr_fun <- constrainParPaleo(surv_mod, match.all ~ match.all)
+
+results <-
+  optim(
+    parInit(constr_fun),
+    constr_fun,
+    lower = parLower(constr_fun),
+    upper = parUpper(constr_fun),
+    method = "L-BFGS-B",
+    control = list(maxit = 1000000)
+  )
+
+availableCores()
+plan(multisession)
+
+ttree <-
+  small_trees[good_trees] |>
+  future_map(~ bin_cal3TimePaleoPhy(.x, time_list, brRate = results$par[1], extRate = results$par[2], sampRate = results$par[3], ntrees = 10, plot = TRUE, root.max = 100)) |>
+    #rexp(rate = 0.17, n = 1) + 1: 39% < 252.17, 0.95 HPDI: 249.2–266.8
+    #rgamma(shape - 3, scale = 0.8, n = 1) + 1: 71% < 252.2, 0.95 HPDI: 249.4–254.33
+  unlist(recursive = FALSE)
+class(ttree) <- "multiPhylo"
+
+multiDiv(ttree, int.length = 0.1)
+
+sapply(ttree, "[[", "root.time") |>
+  as_tibble() |>
+  ggplot(aes(x = value)) +
+    geom_histogram()
+```
+
