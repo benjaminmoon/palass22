@@ -186,6 +186,7 @@ library(ape)
 library(pbapply)
 library(phangorn)
 library(tidyverse)
+library(furrr)
 
 bindellini_trees <-
   read.tree("./data/phylogeny/Bindellini2021PJ-trees.tre") |>
@@ -193,49 +194,110 @@ bindellini_trees <-
 moon_trees <-
   read.tree("./data/phylogeny/Moon2019CB-trees.tre") |>
   root("Hupehsuchus_nanchangensis", resolve.root = TRUE)
+sander_tree <-
+  read.nexus("./data/phylogeny/Sander2021S-tree.nex") |>
+  root("Hupehsuchus_nanchangensis", resolve.root = TRUE)
+chen_tree <-
+  read.tree("./data/phylogeny/Chen2014PO-tree.tre") |>
+  root("Seymouriidae", resolve.root = TRUE)
 
 # standardize the taxonomy
-bindellini_trees[[1]]$tip.label[
+list(
+  bindellini_not_in_moon = bindellini_trees[[1]]$tip.label[
   !bindellini_trees[[1]]$tip.label %in% moon_trees[[1]]$tip.label
+],
+  moon_not_in_bindellini = moon_trees[[1]]$tip.label[
+  !moon_trees[[1]]$tip.label %in% bindellini_trees[[1]]$tip.label
+],
+  bindellini_not_in_sander = bindellini_trees[[1]]$tip.label[
+  !bindellini_trees[[1]]$tip.label %in% sander_tree$tip.label
+],
+  sander_not_in_moon = sander_tree$tip.label[
+  !sander_tree$tip.label %in% moon_trees[[1]]$tip.label
+],
+  chen_not_in_sander = chen_tree$tip.label[
+  !chen_tree$tip.label %in% sander_tree$tip.label
+],
+  chen_not_in_bindellini = chen_tree$tip.label[
+  !chen_tree$tip.label %in% bindellini_trees[[1]]$tip.label
 ]
+)
 
-taxon_match_bindellini_to_moon <-
+taxon_match <-
   c(
-    "Besanosaurus"              = "Besanosaurus_leptorhynchus",
-    "Californosaurus"           = "Californosaurus_perrini",
-    "Callawayia_wolonggangense" = "Guizhouichthyosaurus_wolonggangense",
-    "Cartorhynchus"             = "Cartorhynchus_lenticarpus",
-    "Cymbospondylus_piscosus"   = "Cymbospondylus_petrinus",
-    "Eohupehsuchus"             = "Eohupehsuchus_brevicollis",
-    "Eretmorhipis"              = "Eretmorhipis_carrolldongi",
-    "Grippia"                   = "Grippia_longirostris",
-    "Guanlingsaurus"            = "Shastasaurus_liangae",
-    "Guizhouichthyosaurus"      = "Guizhouichthyosaurus_tangae",
-    "Gulosaurus"                = "Gulosaurus_helmi",
-    "Hudsonelpidia"             = "Hudsonelpidia_brevirostris",
-    "Hupehsuchus"               = "Hupehsuchus_nanchangensis",
-    "Macgowania"                = "Macgowania_janiceps",
-    "Mixosaurus_panxianensis"   = "Barracudasauroides_panxianensis",
-    "Nanchangosaurus"           = "Nanchangosaurus_suni",
-    "Parahupehsuchus"           = "Parahupehsuchus_longus",
-    "Parvinatator"              = "Parvinatator_wapitiensis",
-    "Phalarodon_atavus"         = "Contectopalatus_atavus",
-    "Sclerocormus"              = "Sclerocormus_parviceps",
-    "Shastasaurus"              = "Shastasaurus_pacificus",
-    "Thalattoarchon"            = "Thalattoarchon_saurophagis",
-    "Utatsusaurus"              = "Utatsusaurus_hataii",
-    "Xinminosaurus"             = "Xinminosaurus_catactes"
+    "Besanosaurus"               = "Besanosaurus_leptorhynchus",
+    "Californosaurus"            = "Californosaurus_perrini",
+    "Callawayia_wolonggangense"  = "Guizhouichthyosaurus_wolonggangense",
+    "Callawayia_wolonggangensis" = "Guizhouichthyosaurus_wolonggangense",
+    "Cartorhynchus"              = "Cartorhynchus_lenticarpus",
+    "Chaohusaurus"               = "Chaohusaurus_geishanensis",
+    "Cymbospondylus_piscosus"    = "Cymbospondylus_petrinus",
+    "Eohupehsuchus"              = "Eohupehsuchus_brevicollis",
+    "Eretmorhipis"               = "Eretmorhipis_carrolldongi",
+    "Grippia"                    = "Grippia_longirostris",
+    "Guanlingsaurus"             = "Shastasaurus_liangae",
+    "Guizhouichthyosaurus"       = "Guizhouichthyosaurus_tangae",
+    "Gulosaurus"                 = "Gulosaurus_helmi",
+    "Hudsonelpidia"              = "Hudsonelpidia_brevirostris",
+    "Hupehsuchus"                = "Hupehsuchus_nanchangensis",
+    "Macgowania"                 = "Macgowania_janiceps",
+    "Mixosaurus_panxianensis"    = "Barracudasauroides_panxianensis",
+    "Nanchangosaurus"            = "Nanchangosaurus_suni",
+    "Parahupehsuchus"            = "Parahupehsuchus_longus",
+    "Parvinatator"               = "Parvinatator_wapitiensis",
+    "Phalarodon_atavus"          = "Contectopalatus_atavus",
+    "Sclerocormus"               = "Sclerocormus_parviceps",
+    "Shastasaurus"               = "Shastasaurus_pacificus",
+    "Shastasaurus_sikkaniensis"  = "Shastasaurus_sikanniensis",
+    "Shonisaurus_sikkaniensis"   = "Shastasaurus_sikanniensis",
+    "Thalattoarchon"             = "Thalattoarchon_saurophagis",
+    "Utatsusaurus"               = "Utatsusaurus_hataii",
+    "Xinminosaurus"              = "Xinminosaurus_catactes"
   )
+
+availableCores()
+plan(multisession)
+
+standardize_tree_names <-
+  function(phy, taxon_names) {
+    # Standardize taxon names in a tree(s) based on a given 'dictionary'.
+    #
+    # Args:
+    #   phy: a `phylo` or `multiPhylo` object.
+    #   taxon_names: a named character vector. The values of the vector are the correct names and each should be named with the value to be changed.
+    #
+    # Returns:
+    #   A `phylo` or `multiPhylo` object with the tip labels modified.
+    #
+    # Notes:
+    #   For `multiPhylo` objects this is can be parallelized as it's implemented using the *furrr* package. Plan a multisession or multithread beforehand to automatically use this.
+    require(stringr)
+    require(furrr)
+    # add look arounds to the taxon names to prevent matching partial strings
+    names(taxon_names) <- paste0("(?<!.)", names(taxon_names), "(?!.)")
+    if (class(phy) == "phylo") {
+      phy$tip.label <- stringr::str_replace_all(phy$tip.label, taxon_names)
+    } else if (class(phy) == "multiPhylo") {
+      phy <-
+        furrr::future_map(
+          phy, function(.x) {
+            .x$tip.label  <- stringr::str_replace_all(.x$tip.label, taxon_names)
+            .x
+          }, .progress = TRUE
+        )
+      class(phy) <- "multiPhylo"
+    } else {
+      stop("phy is not a 'phylo' or 'multiPhylo' object.")
+    }
+    phy
+  }
 
 bindellini_trees <-
-  purrr::map(
-    bindellini_trees[1:10],
-    function(.x) {
-      .x$tip.label <- str_replace_all(.x$tip.label, taxon_match_bindellini_to_moon)
-      .x
-    }
-  )
-class(bindellini_trees) <- "multiPhylo"
+  standardize_tree_names(bindellini_trees, taxon_match)
+moon_trees <-
+  standardize_tree_names(moon_trees, taxon_match)
+chen_tree <-
+  standardize_tree_names(chen_tree, taxon_match)
 
 
 
@@ -243,18 +305,19 @@ Hupehsuchia <-
   c("Eohupehsuchus_brevicollis", "Eretmorhipis_carrolldongi", "Hupehsuchus_nanchangensis", "Nanchangosaurus_suni", "Parahupehsuchus_longus")
 outgroups <-
   c("Claudiosaurus", "Hovasaurus", "Petrolacosaurus", "Thadeosaurus", "Wumengosaurus")
-anchor_taxa <- c("Cartorhynchus_lenticarpus", "Sclerocormus_parviceps")
+anchor_taxa <- c("Cartorhynchus_lenticarpus", "Sclerocormus_parviceps", "Chaohusaurus_brevifemoralis")
 
 # the topology is the same as this is resolved in strict consensus
 bindellini_outgroups <- keep.tip(bindellini_trees[[1]], tip = c(Hupehsuchia, outgroups, anchor_taxa))
 
-availableCores()
-plan(multisession)
+outgroup_topology <-
+  superTree(c(bindellini_outgroups, chen_tree), rooted = TRUE)
+plot(outgroup_topology)
 
 moon_supertrees <-
   moon_trees |>
-    future_map(~ superTree(c(.x, bindellini_outgroups), rooted = TRUE), .progress = TRUE)
-class(moon_supertrees) <- "multiPhylo"
+    future_map(~ superTree(c(.x, sander_tree, outgroup_topology), rooted = TRUE), .progress = TRUE)
+class(supertrees) <- "multiPhylo"
 
 plot(ladderize(moon_supertrees[[1]]), no.margin = TRUE, cex = 0.5)
 ```
