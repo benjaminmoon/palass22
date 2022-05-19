@@ -34,19 +34,29 @@ source("https://raw.githubusercontent.com/dsilvestro/PyRate/master/pyrate_utilit
 
 ```{r load_data}
 data <-
-  read_tsv("./my_ichthyosaur_occurrences.tsv") |>
+  read_tsv("../occurrence_data/my_ichthyosaur_occurrences.tsv") |>
   filter(
     accepted_rank == "species",
-    min_ma > 201
   ) |>
-  separate_rows(specimen_no, sep = ",") |>
-  write_tsv(paste0(dirs$pyrate, "triassic_species.tsv"))
+  mutate(accepted_name = str_remove(accepted_name, "cf. |\\?")) |>
+  separate_rows(specimen_no, sep = ", ") |>
+  select(accepted_name, max_ma, min_ma) |>
+  write_tsv(paste0(dirs$pyrate, "ichthyosaur_species_occurrences.tsv"))
+
+data |>
+  pull(accepted_name) |>
+  unique() |> sort()
+
+data |>
+  mutate(range = max_ma - min_ma) |>
+  filter(range > 10)
+
 
 extract.ages.pbdb(
-  file = paste0(dirs$pyrate, "triassic_species.tsv"),
+  file = paste0(dirs$pyrate, "ichthyosaur_species_occurrences.tsv"),
   sep = "\t",
   replicates = 10,
-  cutoff = 8,
+  cutoff = 10,
 )
 ```
 

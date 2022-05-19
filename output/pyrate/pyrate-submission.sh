@@ -1,9 +1,9 @@
 #!/bin/bash
-### PBDB triassic ichthyosaur occurrences
+### ichthyosaur occurrences
 ### 10 replicates array job
 ### name of job
-#SBATCH --job-name=Triassic_ichthyosaurs
-#SBATCH --output=Triassic_ichthyosaurs_out
+#SBATCH --job-name=ichthyosaurs_occurrences
+#SBATCH --output=ichthyosaurs_occurrences_out
 ### time to stop job
 #SBATCH --time=0-24:00:00
 ### number of nodes/cpus *for each job*
@@ -19,4 +19,4 @@
 #SBATCH --array=1-10
 ### add Python 3.8 module
 module add lang/python/anaconda/3.8.3-2020-math
-python3 /user/home/glbcm/PyRate/PyRate.py -n 100000000 -s 1000 -j $SLURM_ARRAY_TASK_ID -edgeShift 260 200 -out triassic_ichthyosaurs /user/home/glbcm/ichthy_pyrate/triassic_species_PyRate.py -mG -A 2
+python3 /user/home/glbcm/PyRate/PyRate.py -n 100000000 -s 1000 -j $SLURM_ARRAY_TASK_ID -out ichthyosaurs_occurrences /user/home/glbcm/ichthy_pyrate/ichthyosaur_species_occurrences_PyRate.py -mG -A 2
