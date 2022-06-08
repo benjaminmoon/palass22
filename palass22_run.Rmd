@@ -16,13 +16,15 @@ library(furrr)
 library(coda)
 library(deeptime)                      # https://github.com/willgearty/deeptime
 
+library(viridis)
+
 dirs <-
   list(
-    data   = "data/",
-    figs   = "figs/",
-    geog   = "data/palaeogeog_outlines/",
-    output = "output/",
-    pyrate = "output/pyrate/"
+    data   = "./data/",
+    figs   = "./figs/",
+    geog   = "./data/palaeogeog_outlines/",
+    output = "./output/",
+    pyrate = "./output/pyrate/"
   )
 for (directory in dirs) {
   if (!dir.exists(directory)) dir.create(directory)
@@ -34,11 +36,12 @@ source("https://raw.githubusercontent.com/dsilvestro/PyRate/master/pyrate_utilit
 
 ```{r load_data}
 data <-
-  read_tsv("../occurrence_data/my_ichthyosaur_occurrences.tsv") |>
+  read_tsv(paste0(dirs$data, "ichthyosaur_occurrences.tsv")) |>
   filter(
     accepted_rank == "species",
   ) |>
-  mutate(accepted_name = str_remove(accepted_name, "cf. |\\?")) |>
+  mutate(accepted_name =
+    str_remove(accepted_name, "aff\\. |cf\\. |sp\\.|\\?")) |>
   separate_rows(specimen_no, sep = ", ") |>
   select(accepted_name, max_ma, min_ma) |>
   write_tsv(paste0(dirs$pyrate, "ichthyosaur_species_occurrences.tsv"))
@@ -47,15 +50,93 @@ data |>
   pull(accepted_name) |>
   unique() |> sort()
 
-data |>
-  mutate(range = max_ma - min_ma) |>
-  filter(range > 10)
+range_data <-
+  data |>
+  mutate(range = max_ma - min_ma)
 
+range_data |>
+  filter(range > 10) |>
+  arrange(desc(range))
+
+range_data |>
+  ggplot(aes(x = reorder(accepted_name, range), y = range, colour = reorder(accepted_name, range))) +
+    geom_point(show.legend = FALSE) +
+    coord_flip() +
+    scale_colour_viridis(discrete = TRUE) +
+    labs(x = "Taxon", y = "Dating precision (Ma)") +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+ggsave(file = paste0(dirs$figs, "taxon_dating_precision.pdf"), width = 5, height = 3)
+
+range_data |>
+  ggplot(aes(x = reorder(accepted_name, desc(max_ma)), ymin = min_ma, ymax = max_ma, colour = reorder(accepted_name, desc(max_ma)))) +
+    geom_linerange(position = position_dodge2(width = 1), lwd = 2, show.legend = FALSE) +
+    coord_flip() +
+    scale_y_reverse() +
+    scale_colour_viridis(discrete = TRUE) +
+    labs(x = "Taxon", y = "Dating range (Ma)") +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+ggsave(file = paste0(dirs$figs, "taxon_precision_time.pdf"), width = 5, height = 3)
+
+range_data |>
+  ggplot(aes(
+      x = range,
+      ymin = min_ma,
+      ymax = max_ma,
+      colour = reorder(accepted_name, max_ma))) +
+    geom_linerange(show.legend = FALSE, lwd = 2) +
+    coord_flip(xlim = c(0, 27.2)) +
+    scale_y_reverse() +
+    scale_colour_viridis(discrete = TRUE) +
+    labs(x = "Dating precision (Ma)", y = "Occurrence ranges (Ma)")
+ggsave(file = paste0(dirs$figs, "taxon_range_precision_time.pdf"), width = 5, height = 3)
+
+range_data |>
+  group_by(accepted_name) |>
+  summarize(count = n()) |>
+  ggplot(aes(x = reorder(accepted_name, count), y = count, fill = reorder(accepted_name, count))) +
+    geom_col(show.legend = FALSE) +
+    coord_flip() +
+    scale_fill_viridis(discrete = TRUE) +
+    labs(x = "Taxon", y = "Specimen count") +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+ggsave(file = paste0(dirs$figs, "taxon_specimen_counts.pdf"), width = 5, height = 3)
+
+full_data <-
+  read_tsv(paste0(dirs$data, "ichthyosaur_occurrences.tsv")) |>
+  mutate(accepted_name =
+    str_remove(accepted_name, "aff\\. |cf\\. |sp\\.|\\?")) |>
+  separate_rows(specimen_no, sep = ", ") |>
+  select(accepted_name, accepted_rank, max_ma, min_ma) |>
+  mutate(range = max_ma - min_ma)
+
+specimens_through_time <-
+  250:90 |>
+  map_dfr(function(.x) {
+    full_bin_count <-
+      full_data |>
+      filter(max_ma > .x - 1, min_ma < .x) |>
+      nrow()
+    bin_count <-
+      full_data |>
+      filter(accepted_rank == "species", max_ma > .x - 1, min_ma < .x) |>
+      nrow()
+    list(bin_start = .x, count_named = bin_count, count_unnamed = full_bin_count - bin_count)
+  })
+
+specimens_through_time |>
+  pivot_longer(matches("count"), names_to = "dataset", names_prefix = "count_", values_to = "count") |>
+  ggplot(aes(x = bin_start - 0.5, y = count, fill = reorder(dataset, desc(dataset)))) +
+    geom_col(show.legend = FALSE) +
+    scale_x_reverse() +
+    scale_fill_viridis(discrete = TRUE, end = 0.6, name = "Identity") +
+    # coord_geo(xlim = c(250, 90), dat = "stages", center_end_labels = TRUE, dat_is_discrete = TRUE, lab = FALSE, color = NA, height = unit(0.2, "line")) +
+    labs(x = "Age (Ma)", y = "Number of specimens")
+ggsave(file = paste0(dirs$figs, "specimen_counts_time.pdf"), width = 5, height = 3)
 
 extract.ages.pbdb(
   file = paste0(dirs$pyrate, "ichthyosaur_species_occurrences.tsv"),
   sep = "\t",
-  replicates = 10,
+  replicates = 24, # how many cores on a node
   cutoff = 10,
 )
 ```
@@ -191,6 +272,12 @@ log_data |>
   theme(legend.position = "none")
 ```
 
+```{r alternative_pyrate}
+pyrate_logs <-
+  read_tsv(paste0(dirs$pyrate, "pyrate_mcmc_logs/combined_10TPP-subages_mcmc.log"))
+```
+
+
 ```{r building_trees}
 library(ape)
 library(pbapply)
@@ -322,12 +409,12 @@ bindellini_outgroups <- keep.tip(bindellini_trees[[1]], tip = c(Hupehsuchia, out
 
 outgroup_topology <-
   superTree(c(bindellini_outgroups, chen_tree), rooted = TRUE)
-plot(outgroup_topology)
+plot(outgroup_topology, no.margin = TRUE)
 
 moon_supertrees <-
   moon_trees |>
     future_map(~ superTree(c(.x, sander_tree, outgroup_topology), rooted = TRUE), .progress = TRUE)
-class(supertrees) <- "multiPhylo"
+class(moon_supertrees) <- "multiPhylo"
 
 plot(ladderize(moon_supertrees[[1]]), no.margin = TRUE, cex = 0.5)
 ```
