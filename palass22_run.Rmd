@@ -126,7 +126,7 @@ specimens_through_time <-
 specimens_through_time |>
   pivot_longer(matches("count"), names_to = "dataset", names_prefix = "count_", values_to = "count") |>
   ggplot(aes(x = bin_start - 0.5, y = count, fill = reorder(dataset, desc(dataset)))) +
-    geom_col() +
+    geom_col(show.legend = FALSE) +
     scale_x_reverse() +
     scale_fill_viridis(discrete = TRUE, end = 0.6, name = "Identity") +
     # coord_geo(xlim = c(250, 90), dat = "stages", center_end_labels = TRUE, dat_is_discrete = TRUE, lab = FALSE, color = NA, height = unit(0.2, "line")) +
@@ -272,6 +272,12 @@ log_data |>
   theme(legend.position = "none")
 ```
 
+```{r alternative_pyrate}
+pyrate_logs <-
+  read_tsv(paste0(dirs$pyrate, "pyrate_mcmc_logs/combined_10TPP-subages_mcmc.log"))
+```
+
+
 ```{r building_trees}
 library(ape)
 library(pbapply)
@@ -403,12 +409,12 @@ bindellini_outgroups <- keep.tip(bindellini_trees[[1]], tip = c(Hupehsuchia, out
 
 outgroup_topology <-
   superTree(c(bindellini_outgroups, chen_tree), rooted = TRUE)
-plot(outgroup_topology)
+plot(outgroup_topology, no.margin = TRUE)
 
 moon_supertrees <-
   moon_trees |>
     future_map(~ superTree(c(.x, sander_tree, outgroup_topology), rooted = TRUE), .progress = TRUE)
-class(supertrees) <- "multiPhylo"
+class(moon_supertrees) <- "multiPhylo"
 
 plot(ladderize(moon_supertrees[[1]]), no.margin = TRUE, cex = 0.5)
 ```
