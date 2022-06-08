@@ -577,7 +577,7 @@ most_congruent_trees <-
       as.numeric()
   }
 
-good_trees <- most_congruent_trees(strat_cong, metric = "SCI", cutoff = 0.6)
+good_trees <- most_congruent_trees(strat_cong, metric = "SCI", cutoff = 0.5)
 ```
 
 ```{r cal3}
@@ -590,7 +590,17 @@ time_list <-
   occData2timeList(pt_data, intervalType = "dateRange")
 dimnames(time_list[[2]])[[1]] <- str_replace(names_data, "\\s", "_")
 
-taxicDivDisc(time_list, plot = TRUE)
+tax_div_cal3 <-
+  taxicDivDisc(time_list, plot = TRUE) |>
+  as_tibble()
+
+tax_div_cal3 |>
+  mutate(midpoint = (int.start + int.end) / 2) |>
+  ggplot(aes(x = midpoint, y = int.div)) +
+    geom_col(width = 1) +
+    scale_x_reverse() +
+    labs(x = "Age (Ma)", y = "Taxic diversity")
+
 
 dur_freq <- make_durationFreqDisc(time_list)
 srRes <- optim(
@@ -622,17 +632,79 @@ plan(multisession)
 
 ttree <-
   small_trees[good_trees] |>
-  future_map(~ bin_cal3TimePaleoPhy(.x, time_list, brRate = results$par[1], extRate = results$par[2], sampRate = results$par[3], ntrees = 10, plot = TRUE, root.max = 100)) |>
+  future_map(~ bin_cal3TimePaleoPhy(.x, time_list, brRate = results$par[1], extRate = results$par[2], sampRate = results$par[3], ntrees = 10, plot = TRUE, root.max = 100), .progress = TRUE) |>
     #rexp(rate = 0.17, n = 1) + 1: 39% < 252.17, 0.95 HPDI: 249.2–266.8
     #rgamma(shape - 3, scale = 0.8, n = 1) + 1: 71% < 252.2, 0.95 HPDI: 249.4–254.33
   unlist(recursive = FALSE)
 class(ttree) <- "multiPhylo"
 
-multiDiv(ttree, int.length = 0.1)
+phylo_div_cal3 <-
+  multiDiv(ttree, int.length = 0.1)
+
+as_tibble(phylo_div_cal3$int.times) |>
+  add_column(as_tibble(phylo_div_cal3$median.curve)) |>
+  mutate(midpoint = int.start - (int.end - int.start) / 2) |>
+  ggplot(aes(x = midpoint, y = median, ymin = low.95.quantile, ymax = high.95.quantile)) +
+    geom_ribbon(fill = "grey60") +
+    geom_line(lwd = 1) +
+    scale_x_reverse() +
+    labs(x = "Age (Ma)", y = "cal3 phylogenetic diversity (med, 95% CI)")
+ggsave(paste0(dirs$figs, "cal3_phylogenetic_diversity.pdf"), width = 5, height = 3)
 
 sapply(ttree, "[[", "root.time") |>
   as_tibble() |>
   ggplot(aes(x = value)) +
-    geom_histogram()
+    geom_histogram() +
+    scale_x_reverse() +
+    labs(x = "Root age (Ma)", y = "Count")
+ggsave(paste0(dirs$figs, "cal3_root_ages.pdf"), width = 5, height = 3)
+
+ttree_constr <-
+  small_trees[good_trees] |>
+  future_map(~ bin_cal3TimePaleoPhy(.x, time_list, brRate = results$par[1], extRate = results$par[2], sampRate = results$par[3], ntrees = 10, plot = TRUE, root.max = rgamma(shape = 3, scale = 0.8, n = 1) + 1), .progress = TRUE) |>
+    #rexp(rate = 0.17, n = 1) + 1: 39% < 252.17, 0.95 HPDI: 249.2–266.8
+    # rgamma(shape = 3, scale = 0.8, n = 1) + 1: 71% < 252.2, 0.95 HPDI: 249.4–254.33
+  unlist(recursive = FALSE)
+class(ttree) <- "multiPhylo"
+
+phylo_div_cal3_constr <-
+  multiDiv(ttree_constr, int.length = 0.1)
+
+as_tibble(phylo_div_cal3_constr$int.times) |>
+  add_column(as_tibble(phylo_div_cal3_constr$median.curve)) |>
+  mutate(midpoint = int.start - (int.end - int.start) / 2) |>
+  ggplot(aes(x = midpoint, y = median, ymin = low.95.quantile, ymax = high.95.quantile)) +
+    geom_ribbon(fill = "grey60") +
+    geom_line(lwd = 1) +
+    scale_x_reverse() +
+    labs(x = "Age (Ma)", y = "cal3 phylogenetic diversity (med, 95% CI)")
+ggsave(paste0(dirs$figs, "cal3_constr_phylogenetic_diversity.pdf"), width = 5, height = 3)
+```
+
+```{r mapping_occurrences}
+library(sf)
+library(lwgeom)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+map_data <-
+  read_tsv(paste0(dirs$data, "ichthyosaur_occurrences.tsv")) |>
+  filter(complete.cases(lng, lat)) |>
+  st_as_sf(coords = c("lng", "lat"), crs = 4326)
+
+world_map <-
+  ne_countries(returnclass = "sf")
+
+ggplot() +
+  geom_sf(data = world_map, inherit.aes = FALSE) +
+  geom_sf(data = map_data, mapping = aes(colour = max_ma)) +
+  scale_colour_viridis(name = "Age (Ma)") +
+  coord_sf(crs = "+proj=wink2") +
+  # theme_void() +
+  theme(
+    # legend.position = "none",
+    panel.border = element_blank()
+  )
+# ggsave(paste0(dirs$figs, "occurrence_modern_map.pdf"), width = 6, height = 3)
 ```
 

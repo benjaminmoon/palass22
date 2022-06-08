@@ -123,7 +123,7 @@ Dearcmhara_shawcrossi	extinct	169.45	174.43
 Ichthyosaurus_communis	extinct	195.59	196.54
 Ichthyosaurus_communis	extinct	195.59	196.54
 Utatsusaurus_hataii	extinct	247.06	247.14
-Utatsusaurus_hataii	extinct	248.8	247.39
+Utatsusaurus_hataii	extinct	246.8	247.39
 Utatsusaurus_hataii	extinct	247.06	247.14
 Utatsusaurus_hataii	extinct	247.06	247.14
 Thaisaurus_chonglakmanii	extinct	247.39	247.91
