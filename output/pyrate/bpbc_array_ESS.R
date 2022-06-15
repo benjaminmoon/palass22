@@ -1,26 +1,27 @@
 #!/usr/bin/env Rscript
-args <- commandArgs(trailingOnly = TRUE)
+# args <- commandArgs(trailingOnly = TRUE)
 
 # test if there is at least one argument: if not, return an error
 # https://www.r-bloggers.com/2015/09/passing-arguments-to-an-r-script-from-command-lines/
-if (length(args) != 1) {
-  stop(
-    "Exactly one argument must be supplied (full mcmc.log filename).\n",
-    call. = FALSE
-  )
-}
+#if (length(args) != 1) {
+#  stop(
+#    "Exactly one argument must be supplied (full mcmc.log filename).\n",
+#    call. = FALSE
+#  )
+#}
 
 library(coda)
 library(data.table)
 
-taxon <- args[1]
-dirs <- "/work/glbcm/pg_pyrate/pyrate_mcmc_logs/"
+taxon <- c("ages", "subages")
+dirs <- "/user/home/glbcm/ichthy_pyrate/pyrate_mcmc_logs/"
 
 for (i in seq_len(10)) {
+for (j in taxon) {
   filename <-
-    paste0(dirs, "Pg_", taxon, "_", i, taxon, "_seGibbsrj_mcmc.log")
+    paste0(dirs, "ichthyosaur_", i, "TPP-", j, "_Grj_mcmc.log")
   repname <-
-    paste0(taxon, i)
+    paste0(j, i)
 
   mcmc_log <-
     fread(filename)
@@ -56,4 +57,5 @@ for (i in seq_len(10)) {
     col.names = NA,
     row.names = TRUE
   )
+}
 }
