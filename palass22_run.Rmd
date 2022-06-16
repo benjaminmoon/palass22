@@ -44,7 +44,7 @@ data <-
     str_remove(accepted_name, "aff\\. |cf\\. |sp\\.|\\?")) |>
   separate_rows(specimen_no, sep = ", ") |>
   select(accepted_name, max_ma, min_ma) |>
-  write_tsv(paste0(dirs$pyrate, "ichthyosaur_species_occurrences.tsv"))
+  write_tsv(paste0(dirs$pyrate, "ichthyosaurs.tsv"))
 
 data |>
   pull(accepted_name) |>
@@ -134,7 +134,7 @@ specimens_through_time |>
 ggsave(file = paste0(dirs$figs, "specimen_counts_time.pdf"), width = 5, height = 3)
 
 extract.ages.pbdb(
-  file = paste0(dirs$pyrate, "ichthyosaur_species_occurrences.tsv"),
+  file = paste0(dirs$pyrate, "ichthyosaurs.tsv"),
   sep = "\t",
   replicates = 24, # how many cores on a node
   cutoff = 10,
@@ -409,14 +409,19 @@ bindellini_outgroups <- keep.tip(bindellini_trees[[1]], tip = c(Hupehsuchia, out
 
 outgroup_topology <-
   superTree(c(bindellini_outgroups, chen_tree), rooted = TRUE)
-plot(outgroup_topology, no.margin = TRUE)
+
+pdf(paste0(dirs$figs, "outgroup_phylogeny.pdf"), width = 5, height = 3)
+plot(ladderize(outgroup_topology), no.margin = TRUE, cex = 0.5)
+dev.off()
 
 moon_supertrees <-
   moon_trees |>
     future_map(~ superTree(c(.x, sander_tree, outgroup_topology), rooted = TRUE), .progress = TRUE)
 class(moon_supertrees) <- "multiPhylo"
 
-plot(ladderize(moon_supertrees[[1]]), no.margin = TRUE, cex = 0.5)
+pdf(paste0(dirs$figs, "supertree_phylogeny.pdf"), width = 5, height = 3)
+plot(ladderize(moon_supertrees[[1]]), no.margin = TRUE, cex = 0.2)
+dev.off()
 ```
 
 ```{r strap}
@@ -699,7 +704,7 @@ ggplot() +
   geom_sf(data = world_map, inherit.aes = FALSE) +
   geom_sf(data = map_data, mapping = aes(colour = max_ma)) +
   scale_colour_viridis(name = "Age (Ma)") +
-  coord_sf(crs = "+proj=wink2") +
+  coord_sf(crs = "+proj=august") +
   # theme_void() +
   theme(
     # legend.position = "none",
