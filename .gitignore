@@ -1,3 +1,5 @@
+.DS_Store
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
@@ -280,3 +282,5 @@ TSWLatexianTemp*
 .bash_history
 output/pyrate/__pycache__/*
 output/pyrate/pyrate_mcmc_logs/*
+*prob
+*out
