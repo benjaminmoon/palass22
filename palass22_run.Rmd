@@ -272,6 +272,37 @@ log_data |>
   theme(legend.position = "none")
 ```
 
+In case the above doesn't work.
+
+```{r species_plots}
+list.age <- list.files("./pyrate_mcmc_logs", pattern = "TPP-ages_Grj_mcmc")
+mcmc_log <- purrr::map(list_age, read_tsv) |>
+  purrr::map(select, ends_with("_TS") | ends_with("_TE")) |>
+  purrr::map_dfr(slice_tail, prop = 0.9) |>
+  rename_with(~ str_replace_all(.x, "([[:alpha:]_])_(TS|TE)$", "\\2\\1"))
+taxon_ages_samples <- mcmc_log |>
+  pivot_longer(
+    everything(),
+    names_to = c("age_type", "taxon"), names_pattern = "(TS|TE)_([[:alpha:]_]+)",
+    values_to = "age"
+  )
+taxon_age_samples_plot <- taxon_age_samples |>
+  ggplot(aes(x = age, fill = type)) +
+    geom_histogram(bins = 150)
+taxon_age_samples_plot +
+    facet_wrap(vars(sort(taxon, age, decreasing = TRUE))) +
+    scale_x_reverse()
+ggsave(file = "taxon_ages.pdf", width = 50, height = 30, limitsize = FALSE)
+taxon_age_samples |>
+  ggplot(aes(x = age, fill = type)) +
+    geom_histogram(bins = 150) +
+    facet_wrap(vars(sort(taxon, age, decreasing = TRUE)), ncol = 1) +
+    scale_x_reverse()
+ggsave(file = "taxon_ages_tall.pdf", width = 7, height = 300, limitsize = FALSE)
+```
+
+
+
 ```{r alternative_pyrate}
 pyrate_logs <-
   read_tsv(paste0(dirs$pyrate, "pyrate_mcmc_logs/combined_10TPP-subages_mcmc.log"))
