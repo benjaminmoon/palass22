@@ -4,6 +4,9 @@
 # * appearance_plot_save
 # * arrange_pbdb_diversity_data
 # * build_bins_df
+# * calc_step_values
+# * compute_interval
+# * compute_revbayes_rates
 # * count_bin_flapp
 # * count_pbdb_taxa
 # * count_pbdb_taxon_diversity
@@ -15,8 +18,13 @@
 # * diversity_plot_save
 # * diversity_plot_theme
 # * filter_slice_taxa
+# * occ_per_bin
+# * output_revbayes_skyline_runfiles
+# * plot_step_line_error
+# * plot_revbayes_rates
 # * pretty_num
 # * process_pyrate_results
+# * process_revbayes_logs
 # * pyrate_plot_axes
 # * pyrate_plot_curves
 # * pyrate_plot_eotlabel
@@ -25,6 +33,8 @@
 # * pyrate_plot_theme
 # * read_pyrate_bayesfactors
 # * read_pyrate_results
+# * read_revbayes_log
+# * summarize_revbayes_log
 # * tidy_palaeogeog_polygons
 # * write_for_sqs
 
@@ -598,6 +608,87 @@ map_save_occurrences <- function(plot_obj = last_plot()) {
   )
 }
 
+plot_revbayes_rates <- function(rates, offset = minimum_age, max_age = maximum_age) {
+  # Plot skyline plots from some RevBayes analyses.
+  #
+  # Args:
+  #   rates (data.frame): summarized RevBayes rates.
+  #   offset (numeric): additive for the offset to the skyline analysis.
+  #
+  # Return:
+  #   A plot of speciation, extinction, net diversification, relative extinction, and fossilization rates with error bars.
+  div_rates <- c("Speciation rate", "Extinction rate")
+  rate_rows <- rates$summary[rates$summary$rate %in% div_rates, ]
+  values <- c("median", "lo_hpdi", "hi_hpdi")
+  # rate_rows[rate_rows$rate == "Extinction rate", values] <-
+  #   0 - rate_rows[rate_rows$rate == "Extinction rate", values]
+  rel_rates <- c("Net diversification rate", "Relative extinction rate", "Fossilization rate")
+  plt_col <- list(
+    "Speciation rate"          = c(line = "#045786", fill = "#04578640"),
+    "Extinction rate"          = c(line = "#962A41", fill = "#962A4140"),
+    "Net diversification rate" = c(line = "#7F4200", fill = "#7F420040"),
+    "Relative extinction rate" = c(line = "#065D58", fill = "#065D5840"),
+    "Fossilization rate"       = c(line = "#6039B0", fill = "#6039B040")
+  )
+  x_lim <- rev(range(c(rate_rows$end_times))) + offset
+  par(mar = c(0, 0, 0, 0) + 0.5, oma = c(5, 5, 0, 0), lab = c(10, 5, 7))
+  layout(
+    mat = matrix(1:10, ncol = 2, byrow = FALSE),
+    heights = c(1.5, 1.5, 1, 1, 1), widths = c(5, 1),
+    respect = FALSE
+  )
+  for (rate_type in div_rates) {
+    rows <- rate_rows[rate_rows$rate == rate_type, ]
+    y_lim <- range(rows[c("median", "lo_hpdi", "hi_hpdi")])
+    if (rate_type == "Extinction rate") y_lim <- rev(y_lim)
+    plot(x = rows$end_times, y = rows$median,
+      xlim = x_lim,
+      ylim = y_lim,
+      type = "n", frame.plot = FALSE, xaxt = "n", xaxs = "i",
+      xlab = "Age (Ma)", ylab = rate_type)
+    plt_vals <- calc_step_values(rows, offset = offset,
+      max_age = max_age)
+    plot_step_line_error(plt_vals, col = plt_col[[rate_type]])
+    if (rate_type == "Speciation rate") {
+      axis(1, pos = 0, labels = TRUE)
+      mtext("Age (Ma)", side = 1, line = 0.2)
+    } else {
+      axis(3, pos = 0, labels = FALSE)
+    }
+    mtext(rate_type, 2, line = 3)
+  }
+  # legend(x = "topright", div_rates,
+  #   fill = sapply(plt_col, "[[", "fill"),
+  #   col = sapply(plt_col, "[[", "line"), lwd = 2, border = NA)
+  for (rate_type in rel_rates) {
+    rows <- rates$summary[rates$summary$rate == rate_type, ]
+    plot(x = rows$end_times, y = rows$median,
+      xlim = x_lim, ylim = range(rows[values]),
+      type = "n", frame.plot = FALSE, xaxt = "n", xaxs = "i",
+      xlab = "Age (Ma)", ylab = gsub("([[:alpha:]])([[[:alpha:]]\\s]+)", "\\U\\1\\L\\2", rate_type, perl = TRUE))
+    plt_vals <- calc_step_values(rows, offset = offset,
+      max_age = max_age)
+    plot_step_line_error(plt_vals, col = plt_col[[rate_type]])
+    if (rate_type == "Net diversification rate") abline(h = 0)
+    mtext(rate_type, 2, line = 3)
+  }
+  axis(1, outer = FALSE, line = 1)
+  mtext("Age (Ma)", side = 1, line = 3)
+  for (rate_type in c(div_rates, rel_rates)) {
+    rows <- rates$summary[rates$summary$rate == rate_type, ]
+    y_lim <- range(rows[c("median", "lo_hpdi", "hi_hpdi")])
+    if (rate_type == "Extinction rate") y_lim <- rev(y_lim)
+    samples <- unlist(rates$samples[[rate_type]][grepl("[0-9]", colnames(rates$samples[[rate_type]]))])
+    hist_vals <- hist(samples, plot = FALSE)
+    plot(x = hist_vals$density, y = hist_vals$mids,
+      ylim = y_lim, xaxs = "i",
+      type = "n", axes = FALSE, frame.plot = FALSE, ann = FALSE)
+    polygon(x = c(0, rep(hist_vals$density, each = 2), 0),
+      y = rep(hist_vals$breaks, each = 2),
+      col = plt_col[[rate_type]]["fill"], border = NA)
+  }
+}
+
 pretty_num <- function(number) {
   # Prints a large number with thousands separated by spaces. If the number is
   # greater than 10^6 then it will be printed in scientific notation.
@@ -1006,3 +1097,211 @@ write_for_sqs <- function(data_for_sqs, filepath = "output/data_for_sqs.csv") {
     row.names = FALSE
   )
 }
+
+calc_step_values <- function(rows, offset = minimum_age, max_age = maximum_age) {
+  # Calculate the required x- and y-axis values to make a stepped line graph with background polygons
+  # stepped lines
+  #
+  # Args:
+  #   rows (data.frame): a table of summarized RevBayes rates.
+  #   offset (numeric): the offset value used in the RevBayes analysis (so minimum age is 0).
+  #   max_age (numeric): maximum age to plot values for.
+  #
+  # Return:
+  #   A list of x- and y-axis values for lines and error-polygon to plot.
+  x_line_val <- c(rep(rows$end_times, each = 2) + offset, max_age)
+  x_line_val <- x_line_val[-1]
+  y_line_val <- rep(rows$median, each = 2)
+  y_line_val <- c(y_line_val)
+  # make them polygons
+  x_val <- c(x_line_val, rev(x_line_val))
+  y_min <- rep(rows$lo_hpdi, each = 2)
+  y_max <- rep(rev(rows$hi_hpdi), each = 2)
+  y_val <- c(y_min, y_max)
+  list(
+    lines = data.frame(x_val = x_line_val, y_val = y_line_val),
+    polygon = data.frame(x_val = x_val, y_val = y_val)
+  )
+}
+
+plot_step_line_error <- function(vals, col) {
+  # plot stepped polygon error interval and stepped line
+  polygon(x = vals$polygon$x_val, y = vals$polygon$y_val,
+    col = col[["fill"]], border = NA)
+  lines(x = vals$lines$x_val, y = vals$lines$y_val,
+    col = col[["line"]], lwd = 2)
+}
+
+read_revbayes_log <- function(log_name = "", burn_in = 0) {
+  # Read in a TSV-formatted log file to a data frame. Removes the start rows as a burnin-in period, specify as either a proportion (0–1) or number of rows to remove.
+  #
+  # Args:
+  #   log_name: name of the log file to read in.
+  #   burn_in: amount of rows to remove as burn-in (proportion [0–1] or number of rows)
+  #
+  # Returns:
+  #   A data.frame.
+  log_file <- read.table(log_name, sep = "\t", header = TRUE)
+  if (burn_in >=1) {
+    log_file <- log_file[(burn_in + 1):nrow(log_file), ]
+  } else if (burn_in < 1 & burn_in > 0) {
+    log_file <- log_file[ceiling(burn_in * nrow(log_file)):nrow(log_file), ]
+  } else if (burn_in == 0) {
+    log_file <- log_file
+  }
+  log_file
+}
+
+summarize_revbayes_log <- function(logs, subset_logs = "rate", output_prefix) {
+  # Calculate estimated sample size (ESS) and produce distribution and trace plots for a set of RevBayes MCMC analyses.
+  #
+  # Args:
+  #   logs (list): a list of data.frames holding imported RevBayes logs.
+  #   subset (character): a string to match in analyses to include or a vector of analyses (names) to include.
+  #   output_prefix (character): a string to prefix output file names.
+  #
+  # Returns:
+  #   Prints the ESS results and saves these as a TSV file. Writes a single PDF of traceplots for al parameters.
+  l <- logs[grep(subset_logs, names(logs))]
+  ess <- lapply(l, function(df) {
+    e <- coda::effectiveSize(coda::as.mcmc(df))
+    names(e) <- gsub("[[:alpha:]]+\\.([0-9])", "time.\\1", names(e))
+    list(e[e < 200 & e > 0], print(paste("There are", length(e[e == 0]), "zero ESS values")))
+    e
+  })
+  ess <- tibble::as_tibble(do.call(cbind, ess), rownames = "parameter")
+  readr::write_tsv(ess, file = paste0(dirs$revbayes, output_prefix, "_ess.tsv"))
+  cairo_pdf(paste0(dirs$figs, output_prefix, "_traces.pdf"), onefile = TRUE)
+    for (i in l) plot(as.mcmc(i))
+  dev.off()
+  ess
+}
+
+process_revbayes_logs <- function(logs) {
+  # Manipulate a list of logs from a RevBayes skyline analysis
+  #
+  # Args:
+  #   logs (list): a list of logs with speciation, extinction, and fossilization rates and times logs.
+  #
+  # Returns:
+  #   A list of processed logs ready to plot with:
+  #   
+  #   - speciation and extinction rates,
+  #   - net diversification rate (speciation - extinction),
+  #   - relative extinction rate (speciation / extinction), and
+  #   - fossilization rate.
+  sp_time <- unlist(logs[[1]][1, grepl("[0-9]", colnames(logs[[1]]))], use.names = FALSE)
+  net_div_rate <-
+    as.matrix(logs[[2]][, grepl("lambda", colnames(logs[[2]]))]) -
+    as.matrix(logs[[4]][, grepl("mu", colnames(logs[[4]]))])
+  colnames(net_div_rate) <- paste0("net_div[", seq_len(ncol(net_div_rate)), "]")
+  rel_ext_rate <-
+    as.matrix(logs[[4]][, grepl("mu", colnames(logs[[4]]))]) /
+    as.matrix(logs[[2]][, grepl("lambda", colnames(logs[[2]]))])
+  colnames(rel_ext_rate) <- paste0("rel_ext[", seq_len(ncol(rel_ext_rate)), "]")
+  list(
+    "Speciation rate" = logs[[2]],
+    "Extinction rate" = logs[[4]],
+    "Net diversification rate" = net_div_rate,
+    "Relative extinction rate" = rel_ext_rate,
+    "Fossilization rate" = logs[[6]],
+    "times" = c(0, unlist(sp_time))
+  )
+}
+
+compute_interval <- function(rates) {
+  # Compute the median, mean, and 95% HPDI for some rates data
+  #
+  # Args:
+  #   rates: a process RevBayes rates list.
+  #
+  # Returns:
+  #   A data.frame containing summary values of each input rate type.
+  rates_items <- rates[grepl("rate", names(rates))]
+  l <- lapply(names(rates_items), function(rate) {
+    df <- rates_items[[rate]]
+    df <- df[, grepl("[0-9]", colnames(df))]
+    hpdi <- HPDinterval(as.mcmc(df))
+    data.frame(
+      end_times = rates$times,
+      mean = apply(df, 2, mean),
+      median = apply(df, 2, median),
+      lo_hpdi = hpdi[, "lower"],
+      hi_hpdi = hpdi[, "upper"],
+      rate = rate
+    )
+  })
+  list(
+    summary = do.call(rbind, l),
+    samples = rates_items
+  )
+}
+
+compute_revbayes_rates <- function(logs_path, match) {
+  # Read and process a set of RevBayes skyline analysis log files to extract the summary rates.
+  #
+  # Args:
+  #   logs_path (character): string to the location and matching of logs.
+  #   match (character): string to match in the log path.
+  #
+  # Returns:
+  #   A data.frame of rates including mean, median, and HPD interval. Also writes a file of the estimates sample sizes and a PDF of traces.  
+  rb_filenames <- c("speciation_times", "speciation_rates",
+    "extinction_times", "extinction_rates",
+    "sampling_times", "sampling_rates")
+  rb_logs_names <- paste0(logs_path, match, "_", rb_filenames, ".log")
+  rb_logs <- lapply(rb_logs_names, read_revbayes_log, burn_in = 0.25)
+  names(rb_logs) <- rb_filenames
+  summarize_revbayes_log(rb_logs, output_prefix = match)
+  rates <- process_revbayes_logs(rb_logs)
+  rate_intervals <- compute_interval(rates)
+  return(rate_intervals)
+}
+
+occ_per_bin <- function(taxa, bins, dates = data) {
+  # Create a matrix of the number of per-taxon occurrences within a set of bins.
+  #
+  # Args:
+  #   taxa (character): vector of taxon names.
+  #   bins (numeric): vector of slice/boundary ages.
+  #   dates (data.frame): table of occurrence ages matching the taxon vector.
+  #
+  # Returns:
+  #   A matrix with named rows of the taxa and a column for each bin showing the number of occurrences.
+  stage_nos <- seq_len(length(bins) - 1)
+  occs <- matrix(nrow = length(taxa), ncol = length(bins) - 1,
+    dimnames = list(str_replace(taxa, "\\s", "_"), stage_nos))
+  for (t in seq_along(taxa)) {
+    for (i in stage_nos) {
+      occs[t, i] <- nrow(dates[which(dates$accepted_name == taxa[t] & dates$max_ma > bins[i] & dates$min_ma < bins[i + 1]), ])
+    }
+  }
+  occs
+}
+
+output_revbayes_skyline_runfiles <- function(occurrences = data, bins, output_prefix) {
+  # Produce output script files for revBayes to run a skyline analysis. Files required are:
+  #
+  # - ranges: a TSV table of taxon stratigraphical ranges
+  # - occurrences: a TSV of taxon occurrence numbers within each bin
+  #
+  # Args:
+  #   occurrences (data.frame): table with accepted_name, max_ma, and min_ma columns. Individual fossil occurrences with their respective ages.
+  #   bins (numeric): numeric vector of slice/boundary ages between a set of bins.
+  #   output_prefix (character): string of the directory and file prefix. The prefix is useful to identify in the case of doing multiple runs. Files will have appended their '_occurrences' and '_ranges' and the extension '.tsv'.
+  #
+  # Returns:
+  #   Writes two files as described above.
+  occurrences |>
+    dplyr::mutate(accepted_name = stringr::str_replace(accepted_name, "\\s", "_")) |>
+    dplyr::group_by(taxon = accepted_name) |>
+    dplyr::summarize(
+      min = min(min_ma),
+      max = max(max_ma)
+    ) |>
+    readr::write_tsv(paste0(output_prefix, "_ranges.tsv"))
+  taxa <- unique(occurrences$accepted_name)
+  readr::write_tsv(tibble::as_tibble(occ_per_bin(taxa, bins = bins), rownames = "taxon"),
+    file = paste0(output_prefix, "_occs.tsv"))
+}
+

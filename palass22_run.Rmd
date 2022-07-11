@@ -20,11 +20,12 @@ library(viridis)
 
 dirs <-
   list(
-    data   = "./data/",
-    figs   = "./figs/",
-    geog   = "./data/palaeogeog_outlines/",
-    output = "./output/",
-    pyrate = "./output/pyrate/"
+    data     = "./data/",
+    figs     = "./figs/",
+    geog     = "./data/palaeogeog_outlines/",
+    output   = "./output/",
+    pyrate   = "./output/pyrate/",
+    revbayes = "./output/revbayes/"
   )
 for (directory in dirs) {
   if (!dir.exists(directory)) dir.create(directory)
@@ -742,5 +743,52 @@ ggplot() +
     panel.border = element_blank()
   )
 # ggsave(paste0(dirs$figs, "occurrence_modern_map.pdf"), width = 6, height = 3)
+```
+
+# Occurrence Birth–Death Process for Diversification
+
+
+```{r ofbd_occurrences}
+# use this later for occurrence version
+# fbd_dates <- data |>
+#   mutate(
+#     max = max_ma - minimum_age,
+#     min = min_ma - minimum_age
+#   )
+
+# fbd_dates |>
+#   select(min, max) |>
+#   write_tsv(paste0(dirs$revbayes, "ichthyosaur_occurrences.tsv"))
+
+minimum_age <- min(data$min_ma)
+maximum_age <- 251.9
+
+stages <- readLines(paste0(dirs$pyrate, 'stages')) |>
+  as.numeric()
+stages <- stages[stages >= minimum_age]
+substages <- readLines(paste0(dirs$pyrate, 'substages')) |>
+  as.numeric()
+substages <- substages[substages >= minimum_age]
+
+output_revbayes_skyline_runfiles(occurrences = data, bins = stages,
+  output_prefix = paste0(dirs$revbayes, "stages"))
+output_revbayes_skyline_runfiles(occurrences = data, bins = substages,
+  output_prefix = paste0(dirs$revbayes, "substages"))
+
+old_par <- par()
+
+stage_rate <- compute_revbayes_rates(paste0(dirs$revbayes, "output/"),
+  match = "stage")
+
+cairo_pdf(paste0(dirs$figs, "skyline_stages.pdf"), width = 7, height = 12)
+plot_revbayes_rates(stage_rate, offset = minimum_age, max_age = maximum_age)
+dev.off()
+
+substage_rate <- compute_revbayes_rates(paste0(dirs$revbayes, "output/"),
+  match = "substage")
+
+cairo_pdf(paste0(dirs$figs, "skyline_substages.pdf"), width = 7, height = 12)
+plot_revbayes_rates(substage_rate, offset = minimum_age, max_age = maximum_age)
+dev.off()
 ```
 
