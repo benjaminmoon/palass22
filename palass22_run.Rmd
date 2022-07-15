@@ -834,6 +834,8 @@ x_lim <- rev(range(c(rate_rows$end_times + offset, max_age)))
 
 dev.new(width = 8, height = 5)
 
+cairo_pdf(file = paste0(dirs$figs, "substage_rb_pres_plots.pdf"), width = 8, height = 5, onefile = TRUE)
+par(mar = c(4, 5, 0, 0) + 0.25)
 for (rate_type in div_rates) {
   rows <- rate_rows[rate_rows$rate == rate_type, ]
   y_lim <- range(c(0, rows[values]))
@@ -842,9 +844,8 @@ for (rate_type in div_rates) {
     xlim = x_lim,
     ylim = y_lim,
     type = "n", frame.plot = FALSE, # xaxt = "n",
-    xaxs = "i", xlab = "Age (ma)", ylab = rate_type)
-  plt_vals <- calc_step_values(rows, offset = offset,
-    max_age = max_age)
+    xaxs = "i", xlab = "Age (Ma)", ylab = rate_type)
+  plt_vals <- calc_step_values(rows, offset = offset, max_age = max_age)
   plot_step_line_error(plt_vals, col = plt_col[[rate_type]])
   # if (rate_type == "speciation rate") {
   #   axis(1, labels = TRUE)
@@ -854,4 +855,21 @@ for (rate_type in div_rates) {
   #   axis(3, labels = FALSE)
   # }
 }
+dev.off()
+
+# reduce extinction rate y scale
+cairo_pdf(file = paste0(dirs$figs, "stage_rb_net_red_plot.pdf"), width = 8, height = 5)
+par(mar = c(4, 5, 0, 0) + 0.25)
+rate_type <- "Net diversification rate"
+rows <- rate_rows[rate_rows$rate == rate_type, ]
+y_lim <- c(-0.5, 0.35)
+plot(x = rows$end_times, y = rows$median,
+  xlim = x_lim,
+  ylim = y_lim,
+  type = "n", frame.plot = FALSE, # xaxt = "n",
+  xaxs = "i", xlab = "Age (Ma)", ylab = rate_type)
+plt_vals <- calc_step_values(rows, offset = offset, max_age = max_age)
+plot_step_line_error(plt_vals, col = plt_col[[rate_type]])
+abline(h = 0)
+dev.off()
 ```
