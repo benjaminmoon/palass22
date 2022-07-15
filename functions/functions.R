@@ -630,8 +630,8 @@ plot_revbayes_rates <- function(rates, offset = minimum_age, max_age = maximum_a
     "Relative extinction rate" = c(line = "#065D58", fill = "#065D5840"),
     "Fossilization rate"       = c(line = "#6039B0", fill = "#6039B040")
   )
-  x_lim <- rev(range(c(rate_rows$end_times))) + offset
-  par(mar = c(0, 0, 0, 0) + 0.5, oma = c(5, 5, 0, 0), lab = c(10, 5, 7))
+  x_lim <- rev(range(c(rate_rows$end_times + offset, max_age)))
+  par(mar = c(1.5, 4, 0.5, 0) + 0.5, oma = c(4, 0, 0, 0) + 0.5, lab = c(10, 5, 7))
   layout(
     mat = matrix(1:10, ncol = 2, byrow = FALSE),
     heights = c(1.5, 1.5, 1, 1, 1), widths = c(5, 1),
@@ -639,23 +639,25 @@ plot_revbayes_rates <- function(rates, offset = minimum_age, max_age = maximum_a
   )
   for (rate_type in div_rates) {
     rows <- rate_rows[rate_rows$rate == rate_type, ]
-    y_lim <- range(rows[c("median", "lo_hpdi", "hi_hpdi")])
+    y_lim <- range(c(0, rows[values]))
     if (rate_type == "Extinction rate") y_lim <- rev(y_lim)
     plot(x = rows$end_times, y = rows$median,
       xlim = x_lim,
       ylim = y_lim,
-      type = "n", frame.plot = FALSE, xaxt = "n", xaxs = "i",
+      type = "n", frame.plot = FALSE,
+      xaxt = "n", xaxs = "i",
       xlab = "Age (Ma)", ylab = rate_type)
     plt_vals <- calc_step_values(rows, offset = offset,
       max_age = max_age)
     plot_step_line_error(plt_vals, col = plt_col[[rate_type]])
     if (rate_type == "Speciation rate") {
-      axis(1, pos = 0, labels = TRUE)
-      mtext("Age (Ma)", side = 1, line = 0.2)
+      axis(1, labels = TRUE)
+      mtext("Age (Ma)", side = 1, line = 1, cex = 0.8)
+      mtext("Skyline plots", 3, cex = 0.8)
     } else {
-      axis(3, pos = 0, labels = FALSE)
+      axis(3, labels = FALSE)
     }
-    mtext(rate_type, 2, line = 3)
+    mtext(LETTERS[which(div_rates %in% rate_type)], at = par()$usr[c(1, 4)])
   }
   # legend(x = "topright", div_rates,
   #   fill = sapply(plt_col, "[[", "fill"),
@@ -663,29 +665,35 @@ plot_revbayes_rates <- function(rates, offset = minimum_age, max_age = maximum_a
   for (rate_type in rel_rates) {
     rows <- rates$summary[rates$summary$rate == rate_type, ]
     plot(x = rows$end_times, y = rows$median,
-      xlim = x_lim, ylim = range(rows[values]),
-      type = "n", frame.plot = FALSE, xaxt = "n", xaxs = "i",
-      xlab = "Age (Ma)", ylab = gsub("([[:alpha:]])([[[:alpha:]]\\s]+)", "\\U\\1\\L\\2", rate_type, perl = TRUE))
+      xlim = x_lim, ylim = range(c(0, rows[values])),
+      type = "n", frame.plot = FALSE,
+      xaxt = "n", xaxs = "i",
+      xlab = "Age (Ma)", ylab = rate_type)
     plt_vals <- calc_step_values(rows, offset = offset,
       max_age = max_age)
     plot_step_line_error(plt_vals, col = plt_col[[rate_type]])
     if (rate_type == "Net diversification rate") abline(h = 0)
-    mtext(rate_type, 2, line = 3)
+    mtext(LETTERS[which(rel_rates %in% rate_type) + length(div_rates)], at = par()$usr[c(1, 4)])
   }
-  axis(1, outer = FALSE, line = 1)
+  axis(1, line = 0)
   mtext("Age (Ma)", side = 1, line = 3)
+  par(mar = c(1.5, 0, 0.5, 0) + 0.5)
   for (rate_type in c(div_rates, rel_rates)) {
     rows <- rates$summary[rates$summary$rate == rate_type, ]
-    y_lim <- range(rows[c("median", "lo_hpdi", "hi_hpdi")])
+    y_lim <- range(c(0, rows[values]))
     if (rate_type == "Extinction rate") y_lim <- rev(y_lim)
-    samples <- unlist(rates$samples[[rate_type]][grepl("[0-9]", colnames(rates$samples[[rate_type]]))])
-    hist_vals <- hist(samples, plot = FALSE)
+    samples <- unlist(rates$samples[[rate_type]][, grepl("[0-9]", colnames(rates$samples[[rate_type]]))])
+    y_breaks <- seq(y_lim[1], y_lim[2], length.out = 50)
+    if (min(samples) < min(y_breaks)) y_breaks <- c(min(samples), y_breaks)
+    if (max(samples) > max(y_breaks)) y_breaks <- c(y_breaks, max(samples))
+    hist_vals <- hist(samples, plot = FALSE, breaks = y_breaks)
     plot(x = hist_vals$density, y = hist_vals$mids,
-      ylim = y_lim, xaxs = "i",
-      type = "n", axes = FALSE, frame.plot = FALSE, ann = FALSE)
+      ylim = y_lim, xaxs = "i",  yaxt = "n",
+      type = "n", axes = TRUE, frame.plot = FALSE, ann = FALSE)
     polygon(x = c(0, rep(hist_vals$density, each = 2), 0),
       y = rep(hist_vals$breaks, each = 2),
       col = plt_col[[rate_type]]["fill"], border = NA)
+    if (rate_type == "Speciation rate") mtext("Rate density", cex = 0.8)
   }
 }
 
@@ -1245,7 +1253,7 @@ compute_revbayes_rates <- function(logs_path, match) {
   #   match (character): string to match in the log path.
   #
   # Returns:
-  #   A data.frame of rates including mean, median, and HPD interval. Also writes a file of the estimates sample sizes and a PDF of traces.  
+  #   A data.frame of rates including mean, median, and HPD interval. Also writes a file of the estimates sample sizes and a PDF of traces.
   rb_filenames <- c("speciation_times", "speciation_rates",
     "extinction_times", "extinction_rates",
     "sampling_times", "sampling_rates")
@@ -1279,7 +1287,7 @@ occ_per_bin <- function(taxa, bins, dates = data) {
   occs
 }
 
-output_revbayes_skyline_runfiles <- function(occurrences = data, bins, output_prefix) {
+output_revbayes_skyline_runfiles <- function(occurrences = data, bins, output_prefix, template, replicates) {
   # Produce output script files for revBayes to run a skyline analysis. Files required are:
   #
   # - ranges: a TSV table of taxon stratigraphical ranges
@@ -1289,6 +1297,7 @@ output_revbayes_skyline_runfiles <- function(occurrences = data, bins, output_pr
   #   occurrences (data.frame): table with accepted_name, max_ma, and min_ma columns. Individual fossil occurrences with their respective ages.
   #   bins (numeric): numeric vector of slice/boundary ages between a set of bins.
   #   output_prefix (character): string of the directory and file prefix. The prefix is useful to identify in the case of doing multiple runs. Files will have appended their '_occurrences' and '_ranges' and the extension '.tsv'.
+  #   replicates (numeric): optional number of replicates. Taxon ages are sampled from a uniform distribution, so that each occurrence appears in only 1 bin. Multiple replicates can account for age uncertainty. Future version of RevBayes may be able to incorporate occurrence age uncertainty within the model.
   #
   # Returns:
   #   Writes two files as described above.
@@ -1301,7 +1310,40 @@ output_revbayes_skyline_runfiles <- function(occurrences = data, bins, output_pr
     ) |>
     readr::write_tsv(paste0(output_prefix, "_ranges.tsv"))
   taxa <- unique(occurrences$accepted_name)
-  readr::write_tsv(tibble::as_tibble(occ_per_bin(taxa, bins = bins), rownames = "taxon"),
-    file = paste0(output_prefix, "_occs.tsv"))
+  if (!exists("replicates")) {
+    bin_occ <- tibble::as_tibble(occ_per_bin(taxa, bins = bins), rownames = "taxon")
+    readr::write_tsv(bin_occ,
+      file = paste0(output_prefix, "_occs.tsv"))
+    write_rb_FBDRMatrix_runfile(template = template, taxon_file = paste0(output_prefix, "_ranges.tsv"), occ_file = paste0(output_prefix, "_occs.tsv"), output_prefix = output_prefix)
+  } else if (is.numeric(replicates) & length(replicates) == 1) {
+    for (repl in seq_len(replicates)) {
+      occ_ages <- apply(occurrences, 1, function(o) runif(1, max = as.numeric(o["max_ma"]), min = as.numeric(o["min_ma"])))
+      mod_data <- data
+      mod_data[, c("max_ma", "min_ma")] <- occ_ages
+      bin_occ <- tibble::as_tibble(occ_per_bin(taxa, bins = bins, dates = mod_data), rownames = "taxon")
+      readr::write_tsv(bin_occ,
+        file = paste0(output_prefix, "_", repl, "_occs.tsv"))
+      write_rb_FBDRMatrix_runfile(template = template, taxon_file = paste0(output_prefix, "_ranges.tsv"), occ_file = paste0(output_prefix, "_", repl, "_occs.tsv"), output_prefix = paste0(output_prefix, "_", repl))
+    }
+  } else {
+    stop("Replicate must be a single number.")
+  }
 }
 
+write_rb_FBDRMatrix_runfile <- function (template = paste0(dirs$revbayes, "fbdrmatrix_template.Rev"), taxon_file, occ_file, output_prefix) {
+  # Modify the RevBayes FBDRMatrix file with the relevant input and output file names.
+  #
+  # Args:
+  #   template (character): a string with the file location of the Revabesy RBDRMatrix template file.
+  #   taxon_file (character): a string of the taxon file name.
+  #   occ_file (character): a string of the occurrences file name.
+  #   output_prefix (character): a string of the output prefix for the file names.
+  #
+  # Returns:
+  #   Writes a RevBayes script file with the relevant input and output file names.
+  template <- readLines(template)
+  output <- gsub("\\$1", taxon_file, template)
+  output <- gsub("\\$2", occ_file, output)
+  output <- gsub("\\$3", output_prefix, output)
+  writeLines(output, con = paste0(output_prefix, "_fbdrmatrix.Rev"))
+}

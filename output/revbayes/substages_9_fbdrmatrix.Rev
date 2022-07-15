@@ -1,0 +1,72 @@
+# read stratigraphic ranges
+taxa = readTaxonData(file = "./output/revbayes/substages_ranges.tsv")
+
+# read fossil counts
+k <- readDataDelimitedFile(file = "./output/revbayes/substages_9_occs.tsv", header = true, rownames = true)
+
+# interval boundaries
+# timeline <- v(100, 145, 201) - 66
+timeline <- v(95.47, 96.24, 100.50, 107.59, 110.22, 113.14, 122.98, 126.30, 129.41, 130.77, 133.48, 134.69, 137.64, 139.39, 141.93, 143.57, 145.73, 147.72, 152.06, 154.73, 157.25, 159.49, 160.63, 163.06, 163.97, 164.63, 166.07, 166.49, 167.37, 168.28, 169.45, 170.30, 170.83, 172.13, 174.15, 178.24, 183.70, 188.29, 191.36, 195.59, 199.36, 201.36, 209.56, 214.07, 217.52, 228.45, 233.6, 235.59, 237.00, 239.10, 241.50, 243.43, 244.34, 245.09, 246.80, 248.2, 249.81, 250.6) - 93.90
+
+# Create some vector for the moves and monitors of this analysis
+moves    = VectorMoves()
+monitors = VectorMonitors()
+
+alpha <- 10
+
+# specify FBDR model parameters
+for(i in 1:(timeline.size()+1))
+{
+
+	mu[i] ~ dnExp(alpha)
+	lambda[i] ~ dnExp(alpha)
+	psi[i] ~ dnExp(alpha)
+	
+	div[i] := lambda[i] - mu[i]
+	turnover[i] := mu[i]/lambda[i]
+
+	moves.append( mvScale(mu[i], lambda = 0.01) )
+	moves.append( mvScale(mu[i], lambda = 0.1) )
+	moves.append( mvScale(mu[i], lambda = 1) )
+
+	moves.append( mvScale(lambda[i], lambda = 0.01) )
+	moves.append( mvScale(lambda[i], lambda = 0.1) )
+	moves.append( mvScale(lambda[i], lambda = 1) )
+
+	moves.append( mvScale(psi[i], lambda = 0.01) )
+	moves.append( mvScale(psi[i], lambda = 0.1) )
+	moves.append( mvScale(psi[i], lambda = 1) )
+}
+
+rho <- 0
+
+# model 1
+bd ~ dnFBDRMatrix(taxa=taxa, lambda=lambda, mu=mu, psi=psi, rho=rho, timeline=timeline, k=k)
+
+moves.append( mvMatrixElementScale(bd, lambda = 0.01, weight=taxa.size()) )
+moves.append( mvMatrixElementScale(bd, lambda = 0.1, weight=taxa.size()) )
+moves.append( mvMatrixElementScale(bd, lambda = 1, weight=taxa.size()) )
+
+moves.append( mvMatrixElementSlide(bd, delta = 0.01, weight=taxa.size()) )
+moves.append( mvMatrixElementSlide(bd, delta = 0.1, weight=taxa.size()) )
+moves.append( mvMatrixElementSlide(bd, delta = 1, weight=taxa.size()) )
+
+mymodel = model(bd)
+
+# add monitors
+monitors.append( mnScreen(lambda, mu, psi, printgen=100) )
+monitors.append( mnModel(filename="output/./output/revbayes/substages_9.log",printgen=10) )
+
+# monitors to print RevGagets input
+monitors.append( mnFile(filename="output/./output/revbayes/substages_9_speciation_rates.log",lambda,printgen=10) )
+monitors.append( mnFile(filename="output/./output/revbayes/substages_9_speciation_times.log",timeline,printgen=10) )
+monitors.append( mnFile(filename="output/./output/revbayes/substages_9_extinction_rates.log",mu,printgen=10) )
+monitors.append( mnFile(filename="output/./output/revbayes/substages_9_extinction_times.log",timeline,printgen=10) )
+monitors.append( mnFile(filename="output/./output/revbayes/substages_9_sampling_rates.log",psi,printgen=10) )
+monitors.append( mnFile(filename="output/./output/revbayes/substages_9_sampling_times.log",timeline,printgen=10) )
+
+# run the analysis
+mymcmc = mcmc(mymodel, moves, monitors, moveschedule="random")
+mymcmc.run(50000)
+
+q()

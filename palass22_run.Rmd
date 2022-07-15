@@ -142,6 +142,8 @@ extract.ages.pbdb(
 )
 ```
 
+# PyRate
+
 ```{r pyrate_create_submission_scripts, eval = FALSE}
 submission_script_base <-
   paste(
@@ -276,7 +278,7 @@ log_data |>
 In case the above doesn't work.
 
 ```{r species_plots}
-list.age <- list.files("./pyrate_mcmc_logs", pattern = "TPP-ages_Grj_mcmc")
+list_age <- list.files(".output/pyrate/pyrate_mcmc_logs/combined/", pattern = "TPP-ages_mcmc")
 mcmc_log <- purrr::map(list_age, read_tsv) |>
   purrr::map(select, ends_with("_TS") | ends_with("_TE")) |>
   purrr::map_dfr(slice_tail, prop = 0.9) |>
@@ -309,6 +311,7 @@ pyrate_logs <-
   read_tsv(paste0(dirs$pyrate, "pyrate_mcmc_logs/combined_10TPP-subages_mcmc.log"))
 ```
 
+# Phylogenies
 
 ```{r building_trees}
 library(ape)
@@ -763,32 +766,92 @@ ggplot() +
 minimum_age <- min(data$min_ma)
 maximum_age <- 251.9
 
-stages <- readLines(paste0(dirs$pyrate, 'stages')) |>
+stages <- readLines(paste0(dirs$pyrate, "stages")) |>
   as.numeric()
 stages <- stages[stages >= minimum_age]
-substages <- readLines(paste0(dirs$pyrate, 'substages')) |>
+substages <- readLines(paste0(dirs$pyrate, "substages")) |>
   as.numeric()
 substages <- substages[substages >= minimum_age]
 
-output_revbayes_skyline_runfiles(occurrences = data, bins = stages,
-  output_prefix = paste0(dirs$revbayes, "stages"))
-output_revbayes_skyline_runfiles(occurrences = data, bins = substages,
-  output_prefix = paste0(dirs$revbayes, "substages"))
+# combine multiple log files into one
+
+output_revbayes_skyline_runfiles(occurrences = data, bins = stages, output_prefix = paste0(dirs$revbayes, "stages"), template = paste0(dirs$revbayes, "fbdrmatrix_stages_template.Rev"), replicates = 10)
+output_revbayes_skyline_runfiles(occurrences = data, bins = substages, output_prefix = paste0(dirs$revbayes, "substages"), template = paste0(dirs$revbayes, "fbdrmatrix_substages_template.Rev"), replicates = 10)
 
 old_par <- par()
 
-stage_rate <- compute_revbayes_rates(paste0(dirs$revbayes, "output/"),
-  match = "stage")
+combine_revbayes_logs <- function(path = "./output/revbayes/output", match) {
+  # Combines logs from multiple RevBayes diversification runs and outputs a single file.
+  #
+  # Args:
+  #   path (character): string to location of the log files.
+  #   match (character): string within the file name to match. This matches files of the form '$match_\\d+_$rate'.
+  #
+  # Returns:
+  #   Writes combined log files for each of extinction, speciation, and sampling rates and times (six files).
+  logfiles <- c("extinction_rates.log", "sampling_rates.log", "speciation_rates.log", "extinction_times.log", "speciation_times.log", "sampling_times.log")
+  for (rate in logfiles) {
+    files <- list.files(path = path, pattern = paste0("^", match, "_\\d+_", rate), full.names = TRUE)
+    lst <- lapply(files, read.table, sep = "\t", header = TRUE)
+    lst <- do.call(rbind, lst)
+    write.table(lst, file = paste0(path, "/combined_", match, "_", rate), sep = "\t")
+  }
+}
+
+combine_revbayes_logs(match = "stages")
+combine_revbayes_logs(match = "substages")
+
+stage_rate <- compute_revbayes_rates(paste0(dirs$revbayes, "output/combined_"), match = "ages")
 
 cairo_pdf(paste0(dirs$figs, "skyline_stages.pdf"), width = 7, height = 12)
 plot_revbayes_rates(stage_rate, offset = minimum_age, max_age = maximum_age)
 dev.off()
 
-substage_rate <- compute_revbayes_rates(paste0(dirs$revbayes, "output/"),
-  match = "substage")
+substage_rate <- compute_revbayes_rates(paste0(dirs$revbayes, "output/combined_"), match = "substages")
 
 cairo_pdf(paste0(dirs$figs, "skyline_substages.pdf"), width = 7, height = 12)
 plot_revbayes_rates(substage_rate, offset = minimum_age, max_age = maximum_age)
 dev.off()
 ```
 
+```{r rb_pres_plots}
+rates <- stage_rate
+offset <- minimum_age
+max_age <- maximum_age
+div_rates <- c("Speciation rate", "Extinction rate", "Net diversification rate", "Relative extinction rate", "Fossilization rate")
+rate_rows <- rates$summary[rates$summary$rate %in% div_rates, ]
+values <- c("median", "lo_hpdi", "hi_hpdi")
+# rate_rows[rate_rows$rate == "Extinction rate", values] <-
+#   0 - rate_rows[rate_rows$rate == "Extinction rate", values]
+plt_col <- list(
+  "Speciation rate"          = c(line = "#045786", fill = "#04578640"),
+  "Extinction rate"          = c(line = "#962A41", fill = "#962A4140"),
+  "Net diversification rate" = c(line = "#7F4200", fill = "#7F420040"),
+  "Relative extinction rate" = c(line = "#065D58", fill = "#065D5840"),
+  "Fossilization rate"       = c(line = "#6039B0", fill = "#6039B040")
+)
+x_lim <- rev(range(c(rate_rows$end_times + offset, max_age)))
+
+dev.new(width = 8, height = 5)
+
+for (rate_type in div_rates) {
+  rows <- rate_rows[rate_rows$rate == rate_type, ]
+  y_lim <- range(c(0, rows[values]))
+  # if (rate_type == "extinction rate") y_lim <- rev(y_lim)
+  plot(x = rows$end_times, y = rows$median,
+    xlim = x_lim,
+    ylim = y_lim,
+    type = "n", frame.plot = FALSE, # xaxt = "n",
+    xaxs = "i", xlab = "Age (ma)", ylab = rate_type)
+  plt_vals <- calc_step_values(rows, offset = offset,
+    max_age = max_age)
+  plot_step_line_error(plt_vals, col = plt_col[[rate_type]])
+  # if (rate_type == "speciation rate") {
+  #   axis(1, labels = TRUE)
+  #   mtext("age (ma)", side = 1, line = 1, cex = 0.8)
+  #   mtext("Rates through time", 3, cex = 0.8)
+  # } else {
+  #   axis(3, labels = FALSE)
+  # }
+}
+```
