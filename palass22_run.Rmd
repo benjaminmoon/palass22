@@ -726,6 +726,7 @@ library(sf)
 library(lwgeom)
 library(rnaturalearth)
 library(rnaturalearthdata)
+library(ggthemes)
 
 map_data <-
   read_tsv(paste0(dirs$data, "ichthyosaur_occurrences.tsv")) |>
@@ -735,16 +736,23 @@ map_data <-
 world_map <-
   ne_countries(returnclass = "sf")
 
+crs_wintri <- "+proj=wintri +datum=WGS84 +no_defs +over"
+grat_wintri <-
+  st_graticule(lat = c(-89.9, seq(-80, 80, 20), 89.9)) |>
+  st_transform_proj(crs = crs_wintri)
+
 ggplot() +
-  geom_sf(data = world_map, inherit.aes = FALSE) +
-  geom_sf(data = map_data, mapping = aes(colour = max_ma)) +
+  geom_sf(data = grat_wintri, colour = "grey60", size = 0.50/.pt) +
+  geom_sf(data = world_map, inherit.aes = FALSE, size = 0.25/.pt) +
+  geom_sf(data = map_data, mapping = aes(colour = max_ma), size = 1) +
   scale_colour_viridis(name = "Age (Ma)") +
-  coord_sf(crs = "+proj=august") +
-  # theme_void() +
+  coord_sf(crs = crs_wintri, datum = NULL) +
+  theme_map() +
   theme(
     # legend.position = "none",
-    panel.border = element_blank()
+    panel.border = element_blank(),
   )
+
 # ggsave(paste0(dirs$figs, "occurrence_modern_map.pdf"), width = 6, height = 3)
 ```
 
